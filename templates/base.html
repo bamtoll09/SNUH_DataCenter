@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SNUH CDM DataCenter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #f8f9fa; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #343a40;
+            color: #fff;
+            padding: 16px 32px;
+        }
+        .logo {
+            font-size: 1.7em;
+            letter-spacing: 1px;
+            font-family: math;
+        }
+        .login-btn {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        nav {
+            background: #495057;
+            display: flex;
+            justify-content: center;
+        }
+        .nav-tabs {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-tabs li {
+            margin: 0;
+        }
+        .nav-tabs button {
+            background: none;
+            border: none;
+            color: #fff;
+            padding: 16px 28px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .nav-tabs button.active, .nav-tabs button:hover {
+            background: #212529;
+        }
+        main {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 32px;
+        }
+        .section-title {
+            font-size: 1.3em;
+            margin-bottom: 16px;
+            color: #343a40;
+        }
+        .cohort-list, .analysis-section {
+            margin-bottom: 32px;
+        }
+        .cohort-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cohort-actions button {
+            margin-left: 8px;
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .cohort-actions button.analyze {
+            background: #28a745;
+        }
+        .new-cohort-form input {
+            padding: 6px;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .new-cohort-form button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="/static/favicon.png" alt="Logo" style="height:32px;vertical-align:middle;margin-right:12px;">
+            SNUH CDM DataCenter
+        </div>
+        <div id="auth-section">
+            <a href="/login" id="login-link"><button class="login-btn" id="login-btn">로그인</button></a>
+        </div>
+        <script>
+            // Helper to format mm:ss
+            function formatTime(sec) {
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            return `${m}:${s}`;
+            }
+
+            function showLogout(remain) {
+            const authDiv = document.getElementById('auth-section');
+            authDiv.innerHTML = `
+                <span id="timer" style="margin-right:16px;font-weight:bold;color:#ffc107;">${formatTime(remain)}</span>
+                <button class="login-btn" id="logout-btn" style="background:#dc3545;">로그아웃</button>
+            `;
+            let timerEl = document.getElementById('timer');
+            let interval = setInterval(() => {
+                remain--;
+                if (remain <= 0) {
+                clearInterval(interval);
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('token_received_at');
+                location.reload();
+                } else {
+                timerEl.textContent = formatTime(remain);
+                }
+            }, 1000);
+            document.getElementById('logout-btn').onclick = function() {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('token_received_at');
+                clearInterval(interval);
+                location.reload();
+            };
+            }
+
+            async function checkAuth() {
+                const token = localStorage.getItem('access_token');
+                if (!token) return;
+                try {
+                    const res = await fetch('/api/verify', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const data = await res.json();
+                    if (data === true || data.valid === true) {
+                    // 30 min = 1800 sec
+                    let receivedAt = localStorage.getItem('token_received_at');
+                    
+                    const elapsed = Math.floor((Date.now() - Number(receivedAt)) / 1000);
+                    const remain = 1800 - elapsed;
+                    if (remain > 0) {
+                        showLogout(remain);
+                    } else {
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('token_received_at');
+                        location.reload();
+                    }
+                }
+            } catch (e) {}
+            }
+
+            // 로그인 성공 시 토큰 저장 예시 (실제 로그인 코드에서 아래 코드 참고)
+            // localStorage.setItem('access_token', token);
+            // localStorage.setItem('token_received_at', Date.now());
+
+            checkAuth();
+        </script>
+    </header>
+    <nav>
+        <ul class="nav-tabs">
+            <li><button class="active" data-tab="home" onclick="location.href='/home'">홈</button></li>
+            <li><button data-tab="search" onclick="location.href='/search'">검색</button></li>
+            <li><button data-tab="chrt_list" onclick="location.href='/list'">코호트 리스트</button></li>
+            <li><button data-tab="admin" onclick="location.href='/admin'">관리자</button></li>
+            <li><button data-tab="pathway">코호트 경로</button></li>
+            <li><button data-tab="profile">프로필</button></li>
+            <li><button data-tab="history">실행내역</button></li>
+            <li><button data-tab="settings">환경설정</button></li>
+            <li><button data-tab="apiintro" onclick="location.href='/api_intro'">API</button></li>
+        </ul>
+    </nav>
+    <main>
+        <div id="tab-home" class="tab-content active">
+            {% block home %}{% endblock %}
+        </div>
+        <div id="tab-search" class="tab-content">
+            {% block search %}{% endblock %}
+        </div>
+        <div id="tab-chrt_list" class="tab-content">
+            {% block chrt_list %}{% endblock %}
+        </div>
+        <div id="tab-admin" class="tab-content">
+            {% block admin %}{% endblock %}
+        </div>
+        <div id="tab-pathway" class="tab-content">
+            {% block pathway %}{% endblock %}
+        </div>
+        <div id="tab-profile" class="tab-content">
+            {% block profile %}{% endblock %}
+        </div>
+        <div id="tab-history" class="tab-content">
+            {% block history %}{% endblock %}
+        </div>
+        <div id="tab-settings" class="tab-content">
+            {% block settings %}{% endblock %}
+        </div>
+        <div id="tab-apiintro" class="tab-content">
+            {% block apiintro %}{% endblock %}
+        </div>
+    </main>
+    <script>
+        window.onload = function() {
+            document.querySelectorAll('.nav-tabs button.active').forEach(btn => btn.classList.remove('active'));
+            
+            var items = window.location.pathname.split('/');
+            var path = items[items.length - 2] || 'home';
+
+            // const mappedPath = path.replace(/_/g, '');
+            // console.log(mappedPath)
+
+            if (path == "list") path = "chrt_list"
+            else if (path.includes("_")) path = path.replace(/_/g, '');
+            
+            const activeTab = document.querySelector(`.nav-tabs button[data-tab="${path || 'home'}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+                document.getElementById('tab-' + activeTab.dataset.tab).classList.add('active');
+            }
+        };
+
+        // Tab switching logic
+        document.querySelectorAll('.nav-tabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+                console.log(this.dataset.tab);
+            });
+        });
+    </script>
+</body>
+</html>

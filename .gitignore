@@ -1,0 +1,5 @@
+test.py
+documents/*
+*.pyc
+__pycache__/
+*/__pycache__/

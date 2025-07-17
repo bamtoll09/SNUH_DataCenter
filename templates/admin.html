@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block admin %}
+<style>
+.search-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 32px 0 24px 0;
+    gap: 8px;
+}
+#search-input {
+    width: 320px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border 0.2s;
+}
+#search-input:focus {
+    border: 1.5px solid #0078d4;
+}
+#search-btn {
+    padding: 10px 22px;
+    font-size: 1rem;
+    background: #0078d4;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#search-btn:hover {
+    background: #005fa3;
+}
+#result-list {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+}
+#result-list li {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 1rem;
+}
+</style>
+<div class="search-container">
+    <input type="text" id="search-input" placeholder="검색어를 입력하세요..." />
+    <button id="search-btn">검색</button>
+</div>
+<ul id="result-list"></ul>
+
+<script>
+async function fetchResults(query = "") {
+    const token = localStorage.getItem("access_token");
+    const params = query ? `?search=${encodeURIComponent(query)}` : "";
+    const response = await fetch(`/api/admin/applies${params}`, {
+        headers: {
+            "Authorization": token ? `Bearer ${token}` : ""
+        }
+    });
+    if (response.ok) {
+        const data = await response.json();
+        renderResults(data.slice(0, 10));
+    } else {
+        renderResults([]);
+    }
+}
+
+function renderResults(results) {
+    const list = document.getElementById("result-list");
+    list.innerHTML = "";
+    if (results.length === 0) {
+        list.innerHTML = "<li>검색 결과가 없습니다.</li>";
+        return;
+    }
+    results.forEach(item => {
+        const li = document.createElement("li");
+        
+        li.textContent = item.name || JSON.stringify(item);
+        li.style.cursor = "pointer";
+        li.addEventListener("click", async () => {
+            if (item.id) {
+                window.location.href = `/admin/${item.id}`;
+            }
+        });
+        list.appendChild(li);
+    });
+}
+
+document.getElementById("search-btn").addEventListener("click", () => {
+    const query = document.getElementById("search-input").value.trim();
+    fetchResults(query);
+});
+
+document.getElementById("search-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        document.getElementById("search-btn").click();
+    }
+});
+
+// 초기 데이터 로드
+fetchResults();
+</script>
+{% endblock %}

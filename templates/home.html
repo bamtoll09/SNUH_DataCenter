@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block home %}
+<div class="container mt-5">
+    <div class="jumbotron text-center">
+        <h1 class="display-4">환영합니다!</h1>
+        <p class="lead mt-4">
+            Data Center에 오신 것을 환영합니다.<br>
+            이 플랫폼은 사용자 행동 데이터를 분석하여<br>
+            인사이트를 얻을 수 있도록 도와줍니다.
+        </p>
+        <hr class="my-4">
+        <p>
+            상단 메뉴에서 다양한 분석 기능을 확인해보세요.
+        </p>
+
+        <script>
+            const welcomeElement = document.querySelector('.display-4');
+
+            async function fetchData() {
+                try {
+                    const response = await fetch('/api/user', {
+                        headers: {'Authorization': `Bearer ${localStorage.getItem("access_token")}`}
+                    });
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    console.log(data);
+                    welcomeElement.textContent = `환영합니다, ${data.name || '사용자'}님!`;
+                } catch (error) {
+                    console.error('There has been a problem with your fetch operation:', error);
+                }
+            }
+
+            fetchData();
+        </script>
+    </div>
+</div>
+{% endblock %}

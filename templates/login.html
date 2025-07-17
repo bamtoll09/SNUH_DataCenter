@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="kr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; }
+        .login-container {
+            width: 300px;
+            margin: 100px auto;
+            padding: 2em;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 1em;
+        }
+        .login-container label {
+            display: block;
+            margin-bottom: 0.5em;
+        }
+        .login-container input[type="text"],
+        .login-container input[type="password"] {
+            width: 100%;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 0.7em;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .login-container button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form method="post" id="loginForm" action="#">
+            <label for="id">ID</label>
+            <input type="text" id="id" name="id" required>
+
+            <label for="pw">Password</label>
+            <input type="password" id="pw" name="pw" required>
+
+            <button type="submit" onclick="login()">Login</button>
+        </form>
+    </div>
+    <script>
+        var loginForm = document.getElementById("loginForm");
+
+        loginForm.onsubmit = function(event) {
+            event.preventDefault(); // 폼 제출 방지
+            login(); // 로그인 함수 호출
+        };
+
+        async function login() {
+            var formData = new FormData(loginForm);
+            var data = Object.fromEntries(formData);
+
+            const res = await fetch("/login", {
+                method: "POST",
+                body: formData,
+            });
+
+            // 헤더에서 토큰 읽기
+            // 서버가 "Authorization: Bearer <토큰>" 으로 준 경우
+            const authHeader = res.headers.get("Authorization");
+            const token = authHeader?.replace("Bearer ", "");
+
+            // 필요하면 상태/스토리지에 저장
+            localStorage.setItem("access_token", token);
+            let receivedAt = Date.now();
+            localStorage.setItem('token_received_at', receivedAt);
+
+            if (res.ok) {
+                // 로그인 성공 시 /home으로 이동
+                window.location.href = "/home";
+            } else {
+                // 로그인 실패 시 에러 메시지 표시
+                const errorText = await res.text();
+                alert("Login failed: " + errorText);
+            }
+        }
+    </script>
+</body>
+</html>

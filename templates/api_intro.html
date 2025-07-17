@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block apiintro %}
+    <h2>API 요청 예시</h2>
+    <form>
+        <input type="text" id="searchBar" placeholder="검색어를 입력하세요 (/api 제외 [자동입력])" />
+        <button type="submit" id="fetchBtn">검색</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(event) {
+            event.preventDefault(); // 폼 제출 방지
+        });
+
+        document.getElementById('fetchBtn').addEventListener('click', function() {
+            const query = '/api' + document.getElementById('searchBar').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '로딩 중...';
+
+            const accessToken = localStorage.getItem('access_token');
+
+            fetch(query,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('API 요청 실패');
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    resultDiv.textContent = '에러: ' + error.message;
+                });
+        });
+    </script>
+    <style>
+        #searchBar { width: 300px; padding: 8px; }
+        #fetchBtn { padding: 8px 16px; }
+        #result { margin-top: 24px; background: #f7f7f7; padding: 16px; border-radius: 6px; min-height: 40px; }
+    </style>
+{% endblock %}
