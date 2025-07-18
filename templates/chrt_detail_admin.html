@@ -122,28 +122,11 @@
 
         <!-- File Upload Section -->
         <div style="margin-bottom:24px;">
-            <strong>파일 업로드</strong>
-            <input type="file" id="fileUpload" multiple style="display:block;margin:10px 0;">
-            <ul id="fileList" style="list-style:none;padding:0;margin:0;">
-                <!-- 선택된 파일 목록이 여기에 표시됩니다 -->
-            </ul>
-            <ul id="uploaded_fileList" style="list-style:none;padding:0;margin:0;">
+            <strong>업로드된 파일</strong>
+            <ul id="uploaded_fileList" style="list-style:none;padding:0;margin:0;margin-top:10px;">
                 <!-- 업로드된 파일 목록이 여기에 표시됩니다 -->
             </ul>
         </div>
-        <script>
-            const fileInput = document.getElementById('fileUpload');
-            const fileList = document.getElementById('fileList');
-
-            fileInput.addEventListener('change', function() {
-                fileList.innerHTML = '';
-                Array.from(fileInput.files).forEach(file => {
-                    const li = document.createElement('li');
-                    li.textContent = file.name;
-                    fileList.appendChild(li);
-                });
-            });
-        </script>
 
         <!-- Review Opinion (Read-only) -->
         <div id="review-section">

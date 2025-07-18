@@ -128,7 +128,7 @@
         <div style="margin-bottom:24px;">
             <strong>파일 업로드</strong>
             <input type="file" id="fileUpload" multiple style="display:block;margin:10px 0;">
-            <ul id="fileList" style="list-style:none;padding:0;margin:0;">
+            <ul id="fileList" style="list-style:none;padding:0;margin:0;margin-top:10px;">
                 <!-- 선택된 파일 목록이 여기에 표시됩니다 -->
             </ul>
             <ul id="uploaded_fileList" style="list-style:none;padding:0;margin:0;">
@@ -243,6 +243,9 @@
             applied_at.textContent = schm_detail.applied_at || "신청되지 않았습니다."
             resolved_at.textContent = schm_detail.resolved_at || "승인이력이 없습니다."
             review.textContent = schm_detail.review || "검토의견이 없습니다."
+
+            if (schm_detail.status != "rejected")
+                document.getElementById('fileUpload').style.display = "none";
 
             schm_detail.files.forEach(file => {
                 const li = document.createElement('li');

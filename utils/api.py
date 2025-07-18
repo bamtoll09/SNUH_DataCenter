@@ -13,7 +13,7 @@ from datetime import datetime
 from utils.structure import SchemaSummary, SchemaDetail, OathFile
 
 # -------- Router Imports --------
-from utils.user import cohort, schema
+from utils.userapi import cohort, schema
 
 router.include_router(cohort.router)
 router.include_router(schema.router)
