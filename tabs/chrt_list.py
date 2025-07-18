@@ -11,4 +11,4 @@ async def patients_home(request: Request):
 
 @router.get("/{cohort_id}", response_class=HTMLResponse)
 async def get_cohort(request: Request):
-    return templates.TemplateResponse("chrt_detail2.html", {"request": request})
+    return templates.TemplateResponse("chrt_detail.html", {"request": request})
