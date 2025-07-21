@@ -118,7 +118,7 @@ function renderResults(results) {
         li.style.cursor = "pointer";
         li.addEventListener("click", async () => {
             if (item.id) {
-                window.location.href = `/search/${item.id}`;
+                window.location.href = `/render/search/${item.id}`;
             }
         });
         list.appendChild(li);

@@ -9,7 +9,7 @@ import aiofiles
 from datetime import datetime
 import json
 
-from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile
+from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, ApprovedSchemaTemp, RejectedSchemaTemp, TABLE_NAME, ConnectInfoTemp
 
 # -------- DBM Imports --------
 from utils.dbm import (
@@ -336,3 +336,47 @@ async def sync_schemas(
     logger.debug("Synchronization Success" if synced else "All are up to date")
 
     return "Synchronization Success" if synced else "All are up to date"
+
+@router.get("/approved")
+async def get_approved_schemas(
+    session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)) -> list[dict]:
+
+    user_id = findout_id(session_atlas, user["sub"])
+
+    stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+    schm_infos = session_dc.exec(stmt).all()
+
+    stmt = select(SchmCert).where(
+        SchmCert.id.in_([si.id for si in schm_infos]),
+        SchmCert.cur_status == "approved")
+    schm_certs = session_dc.exec(stmt).all()
+
+    logger.debug(f"[B] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
+
+    for i in range(len(schm_infos)-1, -1, -1):
+        if schm_infos[i].id not in [sc.id for sc in schm_certs]:
+            del schm_infos[i]
+
+    logger.debug(f"[A] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
+
+    import random
+
+    results = []
+
+    for i in range(len(schm_infos)):
+        results.append(
+            ApprovedSchemaTemp(
+                CohortInfoTemp(schm_infos[i].id, schm_infos[i].name, schm_infos[i].description,
+                               random.randint(0, 203040), user["sub"], schm_infos[i].created_at, schm_infos[i].last_modified_at),
+                [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1],
+                ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
+            ).json()
+        )
+
+    return results
+
+@router.get("/rejected")
+async def get_rejected_schemas():
+    pass

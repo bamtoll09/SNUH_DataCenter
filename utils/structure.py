@@ -49,7 +49,54 @@ class TABLE_NAME(Enum):
     PAYER_PLAN_PERIOD = auto()
     CDM_SOURCE = auto()
     METADATA = auto()
-
+TABLE_DESCRIPTION = [
+    '환자 정보',
+    '환자별 최초 기록 시간, 마지막 기록 시간',
+    '검체 정보',
+    '사망 정보',
+    '방문 정보(입원, 외래, 응급)',
+    '방문 상세 정보',
+    '오더 (처치, 수술, 검사 처방) 정보',
+    '약물 처방 정보',
+    '의료장비 및 의료재료 사용 정보',
+    '진단 정보',
+    '검사 결과 정보',
+    '기록지 정보',
+    '기록지 추출 내용 정보 (note 테이블 자연어 처리)',
+    '관찰 정보 (과거력, 가족력 등)',
+    '',
+    '',
+    '',
+    '생체신호 관련 비정형 데이터 메타데이터',
+    'DICOM 파일 메타데이터',
+    'DICOM 파일 기반 파생 데이터',
+    'DICOM 파일 Study 관련 정보',
+    'DICOM 파일 Series 관련 정보',
+    'DICOM 파일에 대한 AI 등의 annotation 정보',
+    'DICOM 파일의 메타 테이블',
+    '환자 진단 유지 기간 정보',
+    '환자 약물 사용 유지 기간 정보',
+    '환자 약물-투여량 사용 유지 기간 정보',
+    '코호트 정보',
+    '코호트 정의 정보',
+    '시군구 정보',
+    '병원 정보 (본원, 암병원, 강남센터 등)',
+    '직원 정보',
+    '표준용어 목록',
+    '표준용어 원천 (SNOMED, ICD10 등)',
+    '표준용어 사용 테이블',
+    '표준용어 원천 하위 분류',
+    '표준용어 대체자',
+    '표준용어간 관계 (부모-자식 관계 포함)',
+    '표준용어간 관계 종류',
+    '표준용어간 계층 관계 (부모-자식 관계 제외)',
+    '표준용어 중 약물관련 용어 정보',
+    '원내코드 - 표준용어 매핑 정보',
+    '환자 지불 비용 정보',
+    '환자 보험 정보',
+    'CDM 구축에 사용된 원천',
+    '',
+]
 
 class CohortInfoTemp():
     def __init__(self, id: int, name: str, description: str,
@@ -82,7 +129,7 @@ class TableInfoTemp():
         data = []
 
         for i in range(len(self.record_counts)):
-            data.append({"name": TABLE_NAME(i+1).name, "description": "환자의 기본 인구학적 정보", "recordCount": self.record_counts[i], "checked": self.checks[i]})
+            data.append({"name": TABLE_NAME(i+1).name, "description": TABLE_DESCRIPTION[i], "recordCount": self.record_counts[i], "checked": self.checks[i]})
 
         return data
 
@@ -109,7 +156,43 @@ class CohortDetailTemp():
             "tableInfo": self.table_info.json(),
             "schemaInfo": self.schema_info.json() if self.schema_info is not None else "{}"
         }
+    
+class ConnectInfoTemp():
+    def __init__(self, host, database, username, port, schema, password):
+        self.host = host
+        self.database = database
+        self.username = username
+        self.port = port
+        self.schema = schema
+        self.password = password
 
+    def json(self):
+        return {
+            "host": self.host,
+            "database": self.database,
+            "username": self.username,
+            "port": self.port,
+            "schema": self.schema,
+            "password": self.password
+        }
+
+class ApprovedSchemaTemp():
+    def __init__(self, cohort_info, tables, connect_info):
+        self.cohort_info = cohort_info
+        self.tables = tables
+        self.connect_info = connect_info
+
+    def json(self):
+        data = self.cohort_info.json()
+        data.update({"tables": self.tables, "connectInfo": self.connect_info.json()})
+        return data
+    
+class RejectedSchemaTemp():
+    pass
+
+
+
+# -------- --------
 class CohortDetail():
     def __init__(self, id: int, name: str, description: str,
                  owner: str, created_at: datetime, modified_at: datetime):
