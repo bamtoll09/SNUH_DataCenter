@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Form, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 # -------- Authentication Setup --------
 from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
-import jwt
+import jwt, json
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -33,8 +33,12 @@ from utils.auth import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 # -------- Database Connection Setup --------
-from utils.dbm import PathwayAnalysisEvents, Security, get_atlas_session
+from utils.dbm import Security, SecUser, get_atlas_session
 from sqlmodel import Session, select
+
+
+# -------- Tools Setup --------
+from utils.tools import findout_role
 
 
 ## ------- FastAPI Application Setup --------
@@ -70,31 +74,26 @@ templates = Jinja2Templates(directory="templates")
 async def render_base() -> HTMLResponse:
     return templates.TemplateResponse("index.html", {"request": {}})
 
-@app.post("/login", response_class=HTMLResponse)
+@app.post("/login", response_class=JSONResponse)
 async def send_login_post(
     id: str = Form(...),
     pw: str = Form(...),
-    session: Session = Depends(get_atlas_session)) -> HTMLResponse:
+    session_atlas: Session = Depends(get_atlas_session)) -> JSONResponse:
 
     logger.debug(f"Attempting login with id={id} and pw")
     logger.debug(f"pw is {pw}")
+
     stmt = select(Security).where(
         Security.email == id)
-    output = session.exec(stmt).first()
+    output = session_atlas.exec(stmt).first()
 
-    html_content = ("<html><body>"
-            f"<h1>Hello, World!</h1>"
-            f"</body></html>")
+    content = dict()
 
     # login fail
     if output is None or pwd_context.verify(pw, output.password) is False:
         logger.warning(f"Login failed for id={id}")
-
-        html_content = (f"<html><body>"
-            f"<h1>Who are you, {id}</h1>"
-            f"</body></html>")
         
-        return HTMLResponse(content=html_content, status_code=401)
+        return JSONResponse(content=json.dumps(content), status_code=401)
     
     # login success
     else:
@@ -106,11 +105,14 @@ async def send_login_post(
         
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        html_content = (f"<html><body>"
-            f"<h1>Hello, {id}</h1>"
-            f"</body></html>")
+        stmt = select(SecUser).where(SecUser.id == id)
+        user = session_atlas.exec(stmt).first()
+
+        isAdmin = False if findout_role(session_atlas, user["sub"]) else True
+
+        content = {"id": user.login, "name": user.name, "token": access_token, "isAdmin": isAdmin}
         
         headers = {"Authorization": f"Bearer {access_token}",
                    "X-Access-Token": access_token}
 
-        return HTMLResponse(content=html_content, headers=headers)
+        return JSONResponse(content=json.dumps(content), headers=headers)
