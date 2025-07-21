@@ -9,7 +9,8 @@ from utils.forms import LoginForm
 
 
 # -------- Importing API Routers --------
-from utils import api, documents
+from api import api
+from utils import documents
 
 
 # -------- Importing Rendering Routes --------
@@ -104,10 +105,10 @@ async def send_login_post(
         stmt = select(SecUser).where(SecUser.login == loginForm.id)
         user_info = session_atlas.exec(stmt).first()
 
-        isAdmin = False if findout_role(session_atlas, user_info.name) else True
+        user_role = "public" if findout_role(session_atlas, user_info.name) else "admin"
 
         # Client Request Form
-        content = {"id": user_info.login, "name": user_info.name, "token": access_token, "isAdmin": isAdmin}
+        content = {"id": user_info.login, "name": user_info.name, "token": access_token, "role": user_role}
         
         headers = {"Authorization": f"Bearer {access_token}",
                    "X-Access-Token": access_token}

@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
-from pydantic import BaseModel
 
-router = APIRouter(prefix="/user/cohort", tags=["user/cohort"])
+router = APIRouter(prefix="/cohort", tags=["user/cohort"])
 
 # -------- Imports --------
 import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile
+from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp
+
 
 # -------- DBM Imports --------
 from utils.dbm import (
     get_atlas_session, get_dc_session,
-    CohortDefinition, SecUser, SecUserRole,
+    CohortDefinition,
     CertOath, SchmInfo, SchmCert
 )
 from utils.auth import verify_token
@@ -33,22 +33,31 @@ logger.setLevel(logging.DEBUG)
 
 # -------- Routes --------
 @router.get("/")
-async def get_users_cohorts(
+async def get_all_cohorts(
     session_atlas: Session = Depends(get_atlas_session),
-    user = Depends(verify_token)) -> list[CohortDefinition]:
+    user = Depends(verify_token)) -> list[dict]:
 
     user_id = findout_id(session_atlas, user["sub"])
 
     stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id).order_by(CohortDefinition.modified_date.desc())
     chrt_defs = session_atlas.exec(stmt).all()
 
-    return chrt_defs
+    import random
+
+    results = []
+    for i in range(len(chrt_defs)):
+        results.append(
+            CohortInfoTemp(chrt_defs[i].id, chrt_defs[i].name, chrt_defs[i].description, random.randint(0, 203040),
+                             user["sub"], chrt_defs[i].created_date, chrt_defs[i].modified_date).json())
+
+    return results
 
 @router.get("/id/{cohort_id}")
 async def get_cohort_by_id(
     cohort_id: int | None,
     session_atlas: Session = Depends(get_atlas_session),
-    user = Depends(verify_token)):
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)) -> dict:
 
     if cohort_id is None:
         logger.error("Cohort id not found")
@@ -68,7 +77,26 @@ async def get_cohort_by_id(
         owner=owner_name, created_at=chrt_def.created_date, modified_at=chrt_def.modified_date,
     )
 
-    return cohort_detail.json()
+    import random
+
+    stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
+    schm_info = session_dc.exec(stmt).first()
+    
+    schm_info_temp = None
+
+    if schm_info is not None:
+        schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
+
+    results = CohortDetailTemp(
+        CohortInfoTemp(
+            cohort_id, chrt_def.name, chrt_def.description,
+            random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date
+        ),
+        TableInfoTemp([random.randint(0,203040) for r in range(46)]),
+        schm_info_temp
+    ).json()
+
+    return results
 
 @router.post("/id/{cohort_id}/apply")
 async def apply_cohort(

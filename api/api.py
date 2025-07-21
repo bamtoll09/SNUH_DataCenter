@@ -15,10 +15,9 @@ from utils.structure import SchemaSummary, SchemaDetail, OathFile
 
 
 # -------- Router Imports --------
-from utils.userapi import cohort, schema
+from api import user
 
-router.include_router(cohort.router)
-router.include_router(schema.router)
+router.include_router(user.router)
 
 
 # -------- DBM Imports --------

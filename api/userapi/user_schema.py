@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/user/schema", tags=["user/schema"])
+router = APIRouter(prefix="/schema", tags=["user/schema"])
 
 # -------- Imports --------
 import os
