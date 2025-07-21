@@ -5,6 +5,8 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/search", tags=["search"])
 
+
+# -------- Routes --------
 @router.get("/", response_class=HTMLResponse)
 async def patients_home(request: Request):
     # return templates.TemplateResponse("search.html", {"request": request})

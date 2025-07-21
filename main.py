@@ -1,5 +1,3 @@
-from typing import Union
-
 from fastapi import FastAPI, Form, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -27,12 +25,10 @@ logger.setLevel(logging.DEBUG)
 from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
 import jwt
-from pydantic import BaseModel
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-from utils.auth import verify_token, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.auth import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 # -------- Database Connection Setup --------

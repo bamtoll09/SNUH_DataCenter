@@ -30,6 +30,7 @@ import logging
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.DEBUG)
 
+
 # -------- Routes --------
 @router.get("/")
 async def get_users_cohorts(

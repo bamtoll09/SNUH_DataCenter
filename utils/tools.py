@@ -6,13 +6,10 @@ from sqlmodel import select, Session
 
 # -------- DBM Imports --------
 from utils.dbm import (
-    get_atlas_session, get_dc_session,
-    CohortDefinition, SecUser, SecUserRole,
-    CertOath, SchmInfo, SchmCert
+    SecUser, SecUserRole,
 )
-from utils.auth import verify_token
 
-from sqlmodel import Session, select, or_, col
+from sqlmodel import Session, select, or_
 
 
 # -------- Logging Setup --------

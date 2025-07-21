@@ -1,15 +1,22 @@
 from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+
 from datetime import datetime, timezone, timedelta
 import jwt
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+
+# -------- Importing secret.py --------
 from secret import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
+
+# -------- Logging Setup --------
 import logging
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.DEBUG)
 
+
+# -------- Setting Security --------
 security = HTTPBearer()
 
 class Token(BaseModel):
