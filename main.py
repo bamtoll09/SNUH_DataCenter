@@ -76,8 +76,8 @@ async def render_base() -> HTMLResponse:
 
 @app.post("/login", response_class=JSONResponse)
 async def send_login_post(
-    id: str = Form(...),
-    pw: str = Form(...),
+    id: str,
+    pw: str,
     session_atlas: Session = Depends(get_atlas_session)) -> JSONResponse:
 
     logger.debug(f"Attempting login with id={id} and pw")
