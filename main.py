@@ -76,36 +76,35 @@ async def render_base() -> HTMLResponse:
 
 @app.post("/login", response_class=JSONResponse)
 async def send_login_post(
-    id: str,
-    pw: str,
+    loginForm: LoginForm,
     session_atlas: Session = Depends(get_atlas_session)) -> JSONResponse:
 
-    logger.debug(f"Attempting login with id={id} and pw")
-    logger.debug(f"pw is {pw}")
+    logger.debug(f"Attempting login with id={loginForm.id} and pw")
+    logger.debug(f"pw is {loginForm.pw}")
 
     stmt = select(Security).where(
-        Security.email == id)
+        Security.email == loginForm.id)
     output = session_atlas.exec(stmt).first()
 
     content = dict()
 
     # login fail
-    if output is None or pwd_context.verify(pw, output.password) is False:
-        logger.warning(f"Login failed for id={id}")
+    if output is None or pwd_context.verify(loginForm.pw, output.password) is False:
+        logger.warning(f"Login failed for id={loginForm.id}")
         
         return JSONResponse(content=json.dumps(content), status_code=401)
     
     # login success
     else:
-        logger.info(f"Login successful for id={id}")
+        logger.info(f"Login successful for id={loginForm.id}")
 
-        payload = {"sub": id, "aud": "normal_user",
+        payload = {"sub": loginForm.id, "aud": "normal_user",
                    "iat": datetime.now(timezone.utc),
                    "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)}
         
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        stmt = select(SecUser).where(SecUser.id == id)
+        stmt = select(SecUser).where(SecUser.id == loginForm.id)
         user = session_atlas.exec(stmt).first()
 
         isAdmin = False if findout_role(session_atlas, user["sub"]) else True
