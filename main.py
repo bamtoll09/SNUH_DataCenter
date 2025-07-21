@@ -104,12 +104,12 @@ async def send_login_post(
         
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        stmt = select(SecUser).where(SecUser.id == loginForm.id)
-        user = session_atlas.exec(stmt).first()
+        stmt = select(SecUser).where(SecUser.login == loginForm.id)
+        user_info = session_atlas.exec(stmt).first()
 
-        isAdmin = False if findout_role(session_atlas, user["sub"]) else True
+        isAdmin = False if findout_role(session_atlas, user_info.name) else True
 
-        content = {"id": user.login, "name": user.name, "token": access_token, "isAdmin": isAdmin}
+        content = {"id": user_info.login, "name": user_info.name, "token": access_token, "isAdmin": isAdmin}
         
         headers = {"Authorization": f"Bearer {access_token}",
                    "X-Access-Token": access_token}
