@@ -74,14 +74,15 @@ class CohortInfoTemp():
         }
     
 class TableInfoTemp():
-    def __init__(self, record_counts):
+    def __init__(self, record_counts, checks):
         self.record_counts = record_counts
+        self.checks = checks
 
     def json(self):
         data = []
 
         for i in range(len(self.record_counts)):
-            data.append({"name": TABLE_NAME(i+1).name, "description": "환자의 기본 인구학적 정보", "recordCount": self.record_counts[i]})
+            data.append({"name": TABLE_NAME(i+1).name, "description": "환자의 기본 인구학적 정보", "recordCount": self.record_counts[i], "checked": self.checks[i]})
 
         return data
 
