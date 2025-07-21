@@ -3,3 +3,4 @@ documents/*
 *.pyc
 __pycache__/
 */__pycache__/
+secret.py

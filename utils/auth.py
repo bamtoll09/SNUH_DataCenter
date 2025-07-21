@@ -4,13 +4,11 @@ from datetime import datetime, timezone, timedelta
 import jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from secret import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+
 import logging
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.DEBUG)
-
-SECRET_KEY = 'secret'
-ALGORITHM = 'HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 security = HTTPBearer()
 
