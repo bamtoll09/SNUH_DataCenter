@@ -65,12 +65,15 @@
         };
 
         async function login() {
-            var formData = new FormData(loginForm);
-            var data = Object.fromEntries(formData);
+            idInput = document.getElementById("id");
+            pwInput = document.getElementById("pw");
+
+            alert(idInput.value + ', ' + pwInput.value);
 
             const res = await fetch("/login", {
                 method: "POST",
-                body: formData,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({"id": idInput.value, "pw": pwInput.value}),
             });
 
             // 헤더에서 토큰 읽기
@@ -85,7 +88,7 @@
 
             if (res.ok) {
                 // 로그인 성공 시 /home으로 이동
-                window.location.href = "/home";
+                window.location.href = "/render/home";
             } else {
                 // 로그인 실패 시 에러 메시지 표시
                 const errorText = await res.text();
