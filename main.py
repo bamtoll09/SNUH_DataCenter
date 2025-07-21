@@ -44,12 +44,13 @@ from utils.tools import findout_role
 ## ------- FastAPI Application Setup --------
 app = FastAPI()
 
-origins = [
-    "http://localhost",
-    "https://localhost",
-    "http://localhost:8000",
-    "https://localhost:8000",
-]
+# origins = [
+#     "http://localhost",
+#     "https://localhost",
+#     "http://localhost:8000",
+#     "https://localhost:8000",
+# ]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
