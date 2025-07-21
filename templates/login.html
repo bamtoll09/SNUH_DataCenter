@@ -68,8 +68,6 @@
             idInput = document.getElementById("id");
             pwInput = document.getElementById("pw");
 
-            alert(idInput.value + ', ' + pwInput.value);
-
             const res = await fetch("/login", {
                 method: "POST",
                 headers: {'Content-Type': 'application/json'},
