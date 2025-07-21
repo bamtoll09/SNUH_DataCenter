@@ -5,12 +5,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
-# -------- Importing Tabs --------
-from tabs import home, search, admin, chrt_list, api_intro
+# -------- Importing Pydantic Models --------
+from utils.forms import LoginForm
 
 
 # -------- Importing API Routers --------
 from utils import api, documents
+
+
+# -------- Importing Rendering Routes --------
+from utils import render
+
 
 # -------- Logging Setup --------
 import logging
@@ -38,31 +43,22 @@ from sqlmodel import Session, select
 ## ------- FastAPI Application Setup --------
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-app.include_router(home.router)
-app.include_router(search.router)
-app.include_router(admin.router)
-app.include_router(chrt_list.router)
 app.include_router(api.router)
-app.include_router(api_intro.router)
 
 # For protected documents
 app.include_router(documents.router)
+app.include_router(render.router)
 
 templates = Jinja2Templates(directory="templates")
 
 
 # -------- Routes --------
 @app.get("/", response_class=HTMLResponse)
-async def render_index():
-    return templates.TemplateResponse("base.html", {"request": {}})
-
-@app.get("/login")
-async def render_login():
-    return templates.TemplateResponse("login.html", {"request": {}})
+async def render_base() -> HTMLResponse:
+    return templates.TemplateResponse("index.html", {"request": {}})
 
 @app.post("/login", response_class=HTMLResponse)
-async def login(
+async def send_login_post(
     id: str = Form(...),
     pw: str = Form(...),
     session: Session = Depends(get_atlas_session)) -> HTMLResponse:
@@ -105,16 +101,3 @@ async def login(
                    "X-Access-Token": access_token}
 
         return HTMLResponse(content=html_content, headers=headers)
-
-@app.get("/db")
-async def read_db(
-    session: Session = Depends(get_atlas_session),
-    subject_id: int = 1112) -> list[PathwayAnalysisEvents]:
-    logger.debug(f"Reading database with subject_id={subject_id}")
-    stmt = select(PathwayAnalysisEvents).where(
-        PathwayAnalysisEvents.subject_id == subject_id)
-    return session.exec(stmt).all()
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
