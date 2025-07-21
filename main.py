@@ -55,11 +55,11 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(render.router)
 app.include_router(api.router)
 
 # For protected documents
 app.include_router(documents.router)
-app.include_router(render.router)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -77,6 +77,7 @@ async def send_login_post(
     logger.debug(f"Attempting login with id={loginForm.id} and pw")
     logger.debug(f"pw is {loginForm.pw}")
 
+    # Get account info with cryptonized password
     stmt = select(Security).where(
         Security.email == loginForm.id)
     output = session_atlas.exec(stmt).first()
@@ -99,11 +100,13 @@ async def send_login_post(
         
         access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
+        # Get user info
         stmt = select(SecUser).where(SecUser.login == loginForm.id)
         user_info = session_atlas.exec(stmt).first()
 
         isAdmin = False if findout_role(session_atlas, user_info.name) else True
 
+        # Client Request Form
         content = {"id": user_info.login, "name": user_info.name, "token": access_token, "isAdmin": isAdmin}
         
         headers = {"Authorization": f"Bearer {access_token}",
