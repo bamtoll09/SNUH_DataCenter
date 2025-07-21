@@ -18,11 +18,11 @@ from utils.dbm import (
 )
 from utils.auth import verify_token
 
-from sqlmodel import Session, select, or_, col, update
+from sqlmodel import Session, select, update
 
 
 # -------- Tool Imports --------
-from utils.tools import compare_dates, findout_id, findout_name, findout_role
+from utils.tools import findout_id, findout_name
 
 
 # -------- Logging Setup --------

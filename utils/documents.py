@@ -6,6 +6,8 @@ from utils.auth import verify_token
 # router = APIRouter(prefix="/documents", dependencies=[Depends(verify_token)], tags=["documents"])
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+
+# -------- Routes --------
 @router.get("/{path:path}")
 async def protected_documents(path: str):
     return FileResponse(f"documents/{path}")

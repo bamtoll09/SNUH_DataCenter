@@ -20,6 +20,7 @@ router.include_router(chrt_list.router)
 router.include_router(api_intro.router)
 
 
+# -------- Routes --------
 @router.get("/", response_class=HTMLResponse)
 async def render_base() -> HTMLResponse:
     return templates.TemplateResponse("base.html", {"request": {}})

@@ -4,15 +4,12 @@ from sqlmodel import SQLModel, Field, create_engine, Session, Column, ARRAY, Str
 
 from datetime import datetime
 
-ATLAS_DB = "postgres"
-DATACENTER_DB = "datacenter"
 
-db_host = "postgres"
-db_password = "mypass"
+# -------- Importing secret.py --------
+from secret import postgres_url, datacenter_url
 
-postgres_url = f"postgresql+psycopg2://{db_host}:{db_password}@127.0.0.1:5432/{ATLAS_DB}"
-datacenter_url = f"postgresql+psycopg2://{db_host}:{db_password}@127.0.0.1:5432/{DATACENTER_DB}"
 
+# -------- DBM Setup --------
 atlas_engine = create_engine(postgres_url, echo=True)
 dc_engine = create_engine(datacenter_url, echo=True)
 
