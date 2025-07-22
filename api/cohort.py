@@ -110,8 +110,6 @@ async def apply_cohort(
     cohort_id: int,
     name: str = Form(...),
     description: str = Form(...),
-    created_at: str = Form(...),
-    modified_at: str = Form(...),
     tables: list[str] = Form(...),
     files: list[UploadFile] = File(...),
     session_atlas: Session = Depends(get_atlas_session),
@@ -132,7 +130,10 @@ async def apply_cohort(
     stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
     schm_info = session_dc.exec(stmt).first()
 
-    m_date = None if modified_at == "NaN" else datetime.strptime(modified_at, "%Y-%m-%d %H:%M:%S.%f")
+    stmt = select(CohortDefinition).shwere(CohortDefinition.id == cohort_id)
+    chrt_def = session_atlas.exec(stmt).first()
+
+    m_date = datetime.strptime(chrt_def.modified_date, "%Y-%m-%d %H:%M:%S.%f")
 
     # Create SchemaInfo
     # Table upload handling
@@ -140,7 +141,7 @@ async def apply_cohort(
     logger.debug(f"Table dimension: {len(tables)} / {len(tables[0])}")
 
     if schm_info is None:
-        c_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S.%f")
+        c_date = datetime.strptime(chrt_def.created_date, "%Y-%m-%d %H:%M:%S.%f")
 
         schm_info = SchmInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
                 tables=tables, origin="ATLAS", created_at=c_date, last_modified_at=m_date)
