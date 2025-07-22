@@ -48,14 +48,6 @@ app = FastAPI()
 
 origins = ["*"]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(render.router)
 app.include_router(api.router)
@@ -63,6 +55,14 @@ app.include_router(temp.router)
 
 # For protected documents
 app.include_router(documents.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 templates = Jinja2Templates(directory="templates")
 
