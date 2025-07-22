@@ -90,7 +90,7 @@ async def get_cohort_by_id(
     results = CohortDetailTemp(
         CohortInfoTemp(
             cohort_id, chrt_def.name, chrt_def.description,
-            random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date
+            random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date, "ATLAS"
         ),
         TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)]),
         schm_info_temp

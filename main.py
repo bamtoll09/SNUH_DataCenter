@@ -51,7 +51,7 @@ origins = ["*"]
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(render.router)
 app.include_router(api.router)
-app.include_router(temp.router)
+app.include_router(temp.router, include_in_schema=False)
 
 # For protected documents
 app.include_router(documents.router)
