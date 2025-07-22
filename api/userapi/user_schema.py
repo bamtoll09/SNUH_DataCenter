@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 
-router = APIRouter(prefix="/schema", tags=["api/user/schema"])
+router = APIRouter(prefix="/schema")
 
 # -------- Imports --------
 import os
@@ -8,13 +8,16 @@ import aiofiles
 from datetime import datetime
 import json
 
-from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, SchemaCertTemp, SchemaDetailTemp, TABLE_NAME, ConnectInfoTemp
+from utils.structure import (
+    CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, SchemaCertTemp, SchemaDetailTemp, TABLE_NAME, ConnectInfoTemp,
+)
 
 # -------- DBM Imports --------
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser, SecUserRole,
-    CertOath, SchmInfo, SchmCert
+    CertOath, SchmInfo, SchmCert,
+    School
 )
 from utils.auth import verify_token
 
@@ -372,6 +375,19 @@ async def sync_schemas(
     logger.debug("Synchronization Success" if synced else "All are up to date")
 
     return "Synchronization Success" if synced else "All are up to date"
+
+@router.get("/id/{schema_id}/create")
+async def create_schema_on_db(
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)
+    ):
+
+    school = School(1, "asdf")
+
+    session_dc.add(school)
+    session_dc.commit()
+    
+    return {"result": "success"}
 
 # @router.get("/approved")
 # async def get_approved_schemas(

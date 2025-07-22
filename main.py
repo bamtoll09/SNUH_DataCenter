@@ -72,7 +72,7 @@ templates = Jinja2Templates(directory="templates")
 async def render_base() -> HTMLResponse:
     return templates.TemplateResponse("index.html", {"request": {}})
 
-@app.post("/login", response_class=JSONResponse)
+@app.post("/login", response_class=JSONResponse, tags=["login"])
 async def send_login_post(
     loginForm: LoginForm,
     session_atlas: Session = Depends(get_atlas_session)) -> JSONResponse:

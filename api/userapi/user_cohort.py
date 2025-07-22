@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 
-router = APIRouter(prefix="/cohort", tags=["api/user/cohort"])
+router = APIRouter(prefix="/cohort")
 
 # -------- Imports --------
 import os

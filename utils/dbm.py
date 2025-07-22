@@ -112,3 +112,11 @@ class CertOath(SQLModel, table=True):
     type: str = Field(default=None, nullable=True)
     category: str = Field(default=None, nullable=True)
     document_for: int = Field(default=None, nullable=False, foreign_key="dc_management.schm_info.id")
+
+
+# -------- Custom Schema --------
+class School(SQLModel, table=True):
+    id: int = Field(primary_key=True, default=None)
+    name: str = Field(default=None, nullable=False)
+
+School.__table_args__ = { "schema": "schema_1_1"}

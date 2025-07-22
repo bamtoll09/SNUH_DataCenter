@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
-router = APIRouter(prefix="/home", tags=["home"])
+router = APIRouter(prefix="/home")
 
 
 # -------- Routes --------

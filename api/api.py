@@ -4,7 +4,7 @@ from pydantic import BaseModel
 # for testing purposes
 from fastapi.responses import Response
 
-router = APIRouter(prefix="/api", tags=["api"])
+router = APIRouter(prefix="/api")
 
 
 # -------- Imports --------
@@ -15,10 +15,11 @@ from utils.structure import SchemaSummary, SchemaDetail, OathFile
 
 
 # -------- Router Imports --------
-from api import user, cohort
+from api import user, cohort, schema
 
 router.include_router(user.router)
 router.include_router(cohort.router)
+router.include_router(schema.router)
 
 
 # -------- DBM Imports --------
