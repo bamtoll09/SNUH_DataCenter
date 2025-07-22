@@ -11,6 +11,7 @@ from utils.forms import LoginForm
 # -------- Importing API Routers --------
 from api import api
 from utils import documents
+from temp import temp
 
 
 # -------- Importing Rendering Routes --------
@@ -58,6 +59,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(render.router)
 app.include_router(api.router)
+app.include_router(temp.router)
 
 # For protected documents
 app.include_router(documents.router)

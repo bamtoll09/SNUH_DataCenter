@@ -75,7 +75,7 @@
 <script>
 async function fetchMine() {
     const token = localStorage.getItem("access_token");
-    const response = await fetch(`/api/user/schema`, {
+    const response = await fetch(`/temp/user/schema`, {
         headers: {
             "Authorization": token ? `Bearer ${token}` : ""
         }
@@ -91,7 +91,7 @@ async function fetchMine() {
 async function fetchResults(query = "", condition = "") {
     const token = localStorage.getItem("access_token");
     const params = query ? `?params=${encodeURIComponent(query)}&condition=${encodeURIComponent(condition)}` : "";
-    const response = await fetch(`/api/schema/search${params}`, {
+    const response = await fetch(`/temp/schema/search${params}`, {
         headers: {
             "Authorization": token ? `Bearer ${token}` : ""
         }
@@ -129,7 +129,7 @@ document.getElementById("sync-btn").addEventListener("click", async () => {
     const token = localStorage.getItem("access_token");
 
     if (token) {
-        const response = await fetch("/api/user/schema/sync", {
+        const response = await fetch("/temp/user/schema/sync", {
             method: 'GET',
             headers: token ? { "Authorization": `Bearer ${token}` } : {}
         });

@@ -227,7 +227,7 @@
             const id = window.location.href.split("/").pop();
             const token = localStorage.getItem("access_token");
 
-            const response = await fetch(`/api/admin/applies/id/${id}`, {
+            const response = await fetch(`/temp/admin/applies/id/${id}`, {
                 headers: {
                     "Authorization": token ? `Bearer ${token}` : ""
                 }
@@ -252,7 +252,7 @@
             formData.append("review", reviewText);
 
             const token = localStorage.getItem("access_token");
-            const response = await fetch(`/api/admin/applies/id/${id}/approve`, {
+            const response = await fetch(`/temp/admin/applies/id/${id}/approve`, {
                 method: 'POST',
                 headers: token ? { "Authorization": `Bearer ${token}`, 
                 "Content-Type": "application/json"} : {},
@@ -278,7 +278,7 @@
             formData.append("review", reviewText);
 
             const token = localStorage.getItem("access_token");
-            const response = await fetch(`/api/admin/applies/id/${id}/reject`, {
+            const response = await fetch(`/temp/admin/applies/id/${id}/reject`, {
                 method: 'POST',
                 headers: token ? { "Authorization": `Bearer ${token}`, 
                 "Content-Type": "application/json"} : {},
