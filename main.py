@@ -86,10 +86,18 @@ async def send_login_post(
     content = dict()
 
     # login fail
-    if output is None or pwd_context.verify(loginForm.pw, output.password) is False:
-        logger.warning(f"Login failed for id={loginForm.id}")
+    if output is None:
+        logger.warning(f"Login failed for id={loginForm.id}, ID is not matched")
+
+        content["error"] = "ID is not matched"
+
+        return JSONResponse(content=content, status_code=401)
+    elif pwd_context.verify(loginForm.pw, output.password) is False:
+        logger.warning(f"Login failed for id={loginForm.id}, PW is not matched")
+
+        content["error"] = "PW is not matched"
         
-        return JSONResponse(content=json.dumps(content), status_code=401)
+        return JSONResponse(content=content, status_code=401)
     
     # login success
     else:
@@ -111,6 +119,7 @@ async def send_login_post(
         content = {"id": user_info.login, "name": user_info.name, "token": access_token, "role": user_role}
         
         headers = {"Authorization": f"Bearer {access_token}",
-                   "X-Access-Token": access_token}
+                   "X-Access-Token": access_token,
+                   "Content-Type": "application/json"}
 
-        return JSONResponse(content=json.dumps(content), headers=headers)
+        return JSONResponse(content=content, headers=headers)

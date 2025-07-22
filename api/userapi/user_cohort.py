@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 
-router = APIRouter(prefix="/cohort", tags=["user/cohort"])
+router = APIRouter(prefix="/cohort", tags=["api/user/cohort"])
 
 # -------- Imports --------
 import os
@@ -48,7 +48,7 @@ async def get_all_cohorts(
     for i in range(len(chrt_defs)):
         results.append(
             CohortInfoTemp(chrt_defs[i].id, chrt_defs[i].name, chrt_defs[i].description, random.randint(0, 203040),
-                             user["sub"], chrt_defs[i].created_date, chrt_defs[i].modified_date).json())
+                             user["sub"], chrt_defs[i].created_date, chrt_defs[i].modified_date, "ATLAS").json())
 
     return results
 

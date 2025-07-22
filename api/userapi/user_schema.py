@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
-from pydantic import BaseModel
 
-router = APIRouter(prefix="/schema", tags=["user/schema"])
+router = APIRouter(prefix="/schema", tags=["api/user/schema"])
 
 # -------- Imports --------
 import os
@@ -9,7 +8,7 @@ import aiofiles
 from datetime import datetime
 import json
 
-from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, ApprovedSchemaTemp, RejectedSchemaTemp, TABLE_NAME, ConnectInfoTemp
+from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, SchemaCertTemp, SchemaDetailTemp, TABLE_NAME, ConnectInfoTemp
 
 # -------- DBM Imports --------
 from utils.dbm import (
@@ -31,95 +30,132 @@ import logging
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.DEBUG)
 
+
 # -------- Routes --------
 @router.get("/")
 async def get_all_schemas(
     session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)):
+    user = Depends(verify_token)) -> list[dict]:
 
-    user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
-
-    logger.debug(f"User role is {user_role}")
+    user_id = findout_id(session_atlas, user["sub"])
     
-    if user_role == "admin":
-        stmt = select(SchmCert).where(SchmCert.cur_status != "before_apply")
-        schm_certs = session_dc.exec(stmt).all()
+    stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+    schm_infos = session_dc.exec(stmt).all()
 
-        stmt = select(SchmInfo).where(SchmInfo.id.in_([sc.id for sc in schm_certs]))
-        schm_infos = session_dc.exec(stmt).all()
+    stmt = select(SchmCert).where(SchmCert.id.in_([si.id for si in schm_infos]))
+    schm_certs = session_dc.exec(stmt).all()
 
-        schm_status = {e.id: e.cur_status for e in schm_certs}
+    import random
 
-        stmt = select(SecUser)
-        users = session_atlas.exec(stmt).all()
+    results = []
 
-        user_id_name_mapping = {u.id: u.name for u in users}
+    for si in schm_infos:
+        for sc in schm_certs:
+            if si.id == sc.id:
+                cohort_info_temp = CohortInfoTemp(si.id, si.name, si.description,
+                                        random.randint(0, 203040), user["sub"], si.created_at, si.last_modified_at, si.origin)
+                schema_cert_temp = SchemaCertTemp(sc.applied_at, sc.resolved_at, sc.cur_status, sc.review)
+                tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
+                connect_info_temp = None
 
-        all_summary = []
+                if sc.cur_status == "approved":
+                    connect_info_temp = ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
 
-        for si in schm_infos:
-            cohort_summary = SchemaSummary(
-                id=si.id,
-                name=si.name,
-                description=si.description,
-                status=schm_status[si.id],
-                owner=user_id_name_mapping[si.owner],
-                created_at=si.created_at,
-                last_modified_at=si.last_modified_at
-            )
+                # else:
+                #     raise HTTPException(status_code=404, detail="Schm info status not found")
+                
+                results.append(
+                    SchemaDetailTemp(
+                        cohort_info_temp,
+                        schema_cert_temp,
+                        tables,
+                        connect_info_temp
+                    ).json()
+                )
 
-            all_summary.append(cohort_summary.json())
+    return results
 
-        return all_summary
+    # user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
+
+    # logger.debug(f"User role is {user_role}")
     
-    elif user_role == "public":
-        user_id = findout_id(session_atlas, user["sub"])
+    # if user_role == "admin":
+    #     stmt = select(SchmCert).where(SchmCert.cur_status != "before_apply")
+    #     schm_certs = session_dc.exec(stmt).all()
 
-        stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
-        user_schm_infos = session_dc.exec(stmt).all()
+    #     stmt = select(SchmInfo).where(SchmInfo.id.in_([sc.id for sc in schm_certs]))
+    #     schm_infos = session_dc.exec(stmt).all()
 
-        stmt = select(SchmCert).where(
-            SchmCert.id.in_([c.id for c in user_schm_infos]),
-            SchmCert.cur_status != "before_apply")
+    #     schm_status = {e.id: e.cur_status for e in schm_certs}
+
+    #     stmt = select(SecUser)
+    #     users = session_atlas.exec(stmt).all()
+
+    #     user_id_name_mapping = {u.id: u.name for u in users}
+
+    #     all_summary = []
+
+    #     for si in schm_infos:
+    #         cohort_summary = SchemaSummary(
+    #             id=si.id,
+    #             name=si.name,
+    #             description=si.description,
+    #             status=schm_status[si.id],
+    #             owner=user_id_name_mapping[si.owner],
+    #             created_at=si.created_at,
+    #             last_modified_at=si.last_modified_at
+    #         )
+
+    #         all_summary.append(cohort_summary.json())
+
+    #     return all_summary
+    
+    # elif user_role == "public":
+    #     user_id = findout_id(session_atlas, user["sub"])
+
+    #     stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+    #     user_schm_infos = session_dc.exec(stmt).all()
+
+    #     stmt = select(SchmCert).where(
+    #         SchmCert.id.in_([c.id for c in user_schm_infos]),
+    #         SchmCert.cur_status != "before_apply")
         
-        user_schm_certs = session_dc.exec(stmt).all()
+    #     user_schm_certs = session_dc.exec(stmt).all()
 
-        user_schm_status = {e.id: e.cur_status for e in user_schm_certs}
+    #     user_schm_status = {e.id: e.cur_status for e in user_schm_certs}
 
-        logger.debug(f"Before length: {len(user_schm_infos)}")
+    #     logger.debug(f"Before length: {len(user_schm_infos)}")
 
-        for i in range(len(user_schm_infos)-1, -1, -1):
-            logger.debug(f"i: {i}")
-            logger.debug(f"schm_info.id: {user_schm_infos[i].id}, statuses: {user_schm_status.keys()}")
-            logger.debug(f"schm_info.id is in?: {user_schm_infos[i].id in user_schm_status.keys()}")
-            if user_schm_infos[i].id not in user_schm_status.keys():
-                del user_schm_infos[i]
+    #     for i in range(len(user_schm_infos)-1, -1, -1):
+    #         logger.debug(f"i: {i}")
+    #         logger.debug(f"schm_info.id: {user_schm_infos[i].id}, statuses: {user_schm_status.keys()}")
+    #         logger.debug(f"schm_info.id is in?: {user_schm_infos[i].id in user_schm_status.keys()}")
+    #         if user_schm_infos[i].id not in user_schm_status.keys():
+    #             del user_schm_infos[i]
 
-        logger.debug(f"After length: {len(user_schm_infos)}")
+    #     logger.debug(f"After length: {len(user_schm_infos)}")
 
-        user_summary = []
+    #     user_summary = []
 
-        for si in user_schm_infos:
-            cohort_summary = SchemaSummary(
-                id=si.id,
-                name=si.name,
-                description=si.description,
-                status=user_schm_status[si.id],
-                owner=user["sub"],
-                created_at=si.created_at,
-                last_modified_at=si.last_modified_at
-            )
+    #     for si in user_schm_infos:
+    #         cohort_summary = SchemaSummary(
+    #             id=si.id,
+    #             name=si.name,
+    #             description=si.description,
+    #             status=user_schm_status[si.id],
+    #             owner=user["sub"],
+    #             created_at=si.created_at,
+    #             last_modified_at=si.last_modified_at
+    #         )
 
-            user_summary.append(cohort_summary.json())
+    #         user_summary.append(cohort_summary.json())
 
-        return user_summary
+    #     return user_summary
 
-    else:
-        logger.error("User role not found")
-        raise HTTPException(status_code=404, detail="User role not found")
-    
-    return "Hello, World!"
+    # else:
+    #     logger.error("User role not found")
+    #     raise HTTPException(status_code=404, detail="User role not found")
 
 @router.get("/id/{schema_id}")
 async def get_schema_by_id(
@@ -337,46 +373,46 @@ async def sync_schemas(
 
     return "Synchronization Success" if synced else "All are up to date"
 
-@router.get("/approved")
-async def get_approved_schemas(
-    session_atlas: Session = Depends(get_atlas_session),
-    session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)) -> list[dict]:
+# @router.get("/approved")
+# async def get_approved_schemas(
+#     session_atlas: Session = Depends(get_atlas_session),
+#     session_dc: Session = Depends(get_dc_session),
+#     user = Depends(verify_token)) -> list[dict]:
 
-    user_id = findout_id(session_atlas, user["sub"])
+#     user_id = findout_id(session_atlas, user["sub"])
 
-    stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
-    schm_infos = session_dc.exec(stmt).all()
+#     stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+#     schm_infos = session_dc.exec(stmt).all()
 
-    stmt = select(SchmCert).where(
-        SchmCert.id.in_([si.id for si in schm_infos]),
-        SchmCert.cur_status == "approved")
-    schm_certs = session_dc.exec(stmt).all()
+#     stmt = select(SchmCert).where(
+#         SchmCert.id.in_([si.id for si in schm_infos]),
+#         SchmCert.cur_status == "approved")
+#     schm_certs = session_dc.exec(stmt).all()
 
-    logger.debug(f"[B] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
+#     logger.debug(f"[B] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
 
-    for i in range(len(schm_infos)-1, -1, -1):
-        if schm_infos[i].id not in [sc.id for sc in schm_certs]:
-            del schm_infos[i]
+#     for i in range(len(schm_infos)-1, -1, -1):
+#         if schm_infos[i].id not in [sc.id for sc in schm_certs]:
+#             del schm_infos[i]
 
-    logger.debug(f"[A] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
+#     logger.debug(f"[A] schm_infos length: {len(schm_infos)}, schm_certs length: {len(schm_certs)}")
 
-    import random
+#     import random
 
-    results = []
+#     results = []
 
-    for i in range(len(schm_infos)):
-        results.append(
-            ApprovedSchemaTemp(
-                CohortInfoTemp(schm_infos[i].id, schm_infos[i].name, schm_infos[i].description,
-                               random.randint(0, 203040), user["sub"], schm_infos[i].created_at, schm_infos[i].last_modified_at),
-                [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1],
-                ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
-            ).json()
-        )
+#     for i in range(len(schm_infos)):
+#         results.append(
+#             ApprovedSchemaTemp(
+#                 CohortInfoTemp(schm_infos[i].id, schm_infos[i].name, schm_infos[i].description,
+#                                random.randint(0, 203040), user["sub"], schm_infos[i].created_at, schm_infos[i].last_modified_at),
+#                 [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1],
+#                 ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
+#             ).json()
+#         )
 
-    return results
+#     return results
 
-@router.get("/rejected")
-async def get_rejected_schemas():
-    pass
+# @router.get("/rejected")
+# async def get_rejected_schemas():
+#     pass

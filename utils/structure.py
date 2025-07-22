@@ -98,9 +98,11 @@ TABLE_DESCRIPTION = [
     '',
 ]
 
+
 class CohortInfoTemp():
     def __init__(self, id: int, name: str, description: str,
-                 patient_count: int, author: str, created_date: datetime, modified_date: datetime):
+                 patient_count: int, author: str, created_date: datetime, modified_date: datetime, origin: str
+                 ):
         self.id = id
         self.name = name
         self.description = description
@@ -108,6 +110,7 @@ class CohortInfoTemp():
         self.author = author
         self.created_date = created_date
         self.modified_date = modified_date
+        self.origin = origin
 
     def json(self):
         return {
@@ -118,6 +121,7 @@ class CohortInfoTemp():
             "author": self.author,
             "createdDate": None if self.created_date is None else self.created_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             "modifiedDate": None if self.modified_date is None else self.modified_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+            "origin": self.origin
         }
     
 class TableInfoTemp():
@@ -175,20 +179,34 @@ class ConnectInfoTemp():
             "schema": self.schema,
             "password": self.password
         }
+    
+class SchemaCertTemp():
+    def __init__(self, applied_date: datetime, resolved_date: datetime, status: str, review: str):
+        self.applied_date = applied_date
+        self.resolved_date = resolved_date
+        self.status = status
+        self.review = review
 
-class ApprovedSchemaTemp():
-    def __init__(self, cohort_info, tables, connect_info):
+    def json(self):
+        return {
+            # "appliedDate": None if self.applied_date is None else self.applied_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+            "resolvedDate": None if self.resolved_date is None else self.resolved_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+            "status": self.status,
+            "review": self.review
+        }
+
+class SchemaDetailTemp():
+    def __init__(self, cohort_info: CohortInfoTemp, schema_cert: SchemaCertTemp, tables: list, connect_info: ConnectInfoTemp):
         self.cohort_info = cohort_info
+        self.schema_cert = schema_cert
         self.tables = tables
         self.connect_info = connect_info
 
     def json(self):
         data = self.cohort_info.json()
-        data.update({"tables": self.tables, "connectInfo": self.connect_info.json()})
+        data.update(self.schema_cert.json())
+        data.update({"tables": self.tables, "connectInfo": self.connect_info.json() if self.connect_info is not None else {} })
         return data
-    
-class RejectedSchemaTemp():
-    pass
 
 
 
