@@ -69,7 +69,7 @@ async def get_cohort_by_id(
         owner=owner_name, created_at=chrt_def.created_date, modified_at=chrt_def.modified_date,
     )
 
-    return cohort_detail
+    return cohort_detail.json()
 
 @router.post("/id/{cohort_id}/apply")
 async def apply_cohort(
