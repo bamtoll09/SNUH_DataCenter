@@ -22,7 +22,7 @@ from sqlmodel import Session, select, update
 
 
 # -------- Tool Imports --------
-from utils.tools import findout_id, findout_name
+from utils.tools import findout_id, findout_name, mapping_id_name
 
 
 # -------- Logging Setup --------
@@ -39,8 +39,15 @@ async def get_all_cohorts(
 
     user_id = findout_id(session_atlas, user["sub"])
 
-    stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id).order_by(CohortDefinition.modified_date.desc())
+    stmt = select(CohortDefinition).order_by(CohortDefinition.modified_date.desc())
     chrt_defs = session_atlas.exec(stmt).all()
+
+    user_id_list = [cd.created_by_id for cd in chrt_defs]
+    user_id_list = list(set(user_id_list))
+
+    user_id_name_mapping = mapping_id_name(session_atlas, user_id_list)
+
+    logger.debug(f"User id list: {user_id_list}, Mapping name: {user_id_name_mapping}")
 
     import random
 
@@ -48,7 +55,7 @@ async def get_all_cohorts(
     for i in range(len(chrt_defs)):
         results.append(
             CohortInfoTemp(chrt_defs[i].id, chrt_defs[i].name, chrt_defs[i].description, random.randint(0, 203040),
-                             user["sub"], chrt_defs[i].created_date, chrt_defs[i].modified_date, "ATLAS").json())
+                             user_id_name_mapping[chrt_defs[i].created_by_id], chrt_defs[i].created_date, chrt_defs[i].modified_date, "ATLAS").json())
 
     return results
 

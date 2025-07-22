@@ -57,3 +57,9 @@ def findout_role(session_atlas: Session, name: str) -> bool:
         return True
     
     return False
+
+def mapping_id_name(session_atlas: Session, ids: list[int]) -> dict:
+    stmt = select(SecUser).where(SecUser.id.in_(ids))
+    users = session_atlas.exec(stmt).all()
+
+    return {user.id: user.name for user in users}
