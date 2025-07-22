@@ -17,7 +17,7 @@ from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser, SecUserRole,
     CertOath, SchmInfo, SchmCert,
-    School
+    make_school_model
 )
 from utils.auth import verify_token
 
@@ -378,11 +378,29 @@ async def sync_schemas(
 
 @router.get("/id/{schema_id}/create")
 async def create_schema_on_db(
+    schema_id: int,
+    session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
     user = Depends(verify_token)
     ):
+    
+    user_id = findout_id(session_atlas, user["sub"])
 
-    school = School(1, "asdf")
+    schema_name = f"schema_{user_id}_{schema_id}"
+
+    School = make_school_model(schema_name)
+    school = School()
+
+    logger.debug(f"School's schema is {school.__table_args__}")
+
+
+    from sqlalchemy import text
+    session_dc.exec(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
+    session_dc.exec(text(f"CREATE TABLE IF NOT EXISTS {schema_name}.school (id int PRIMARY KEY, name VARCHAR(1024))"))
+    session_dc.commit()
+
+    school.id = 1
+    school.name = "HanGang"
 
     session_dc.add(school)
     session_dc.commit()

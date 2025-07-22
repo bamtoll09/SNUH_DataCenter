@@ -158,7 +158,7 @@ class CohortDetailTemp():
         return {
             "cohortInfo": self.cohort_info.json(),
             "tableInfo": self.table_info.json(),
-            "schemaInfo": self.schema_info.json() if self.schema_info is not None else "{}"
+            "schemaInfo": self.schema_info.json() if self.schema_info is not None else {}
         }
     
 class ConnectInfoTemp():

@@ -115,8 +115,11 @@ class CertOath(SQLModel, table=True):
 
 
 # -------- Custom Schema --------
-class School(SQLModel, table=True):
-    id: int = Field(primary_key=True, default=None)
-    name: str = Field(default=None, nullable=False)
+def make_school_model(schema: str):
+    class School(SQLModel, table=True):
+        __tablename__ = "school"
+        __table_args__ = {"schema": schema}
+        id: int = Field(primary_key=True, default=None)
+        name: str = Field(default=None, nullable=False)
 
-School.__table_args__ = { "schema": "schema_1_1"}
+    return School
