@@ -155,7 +155,7 @@ async def apply_cohort(
     logger.debug(f"Table dimension: {len(tables)} / {len(tables[0])}")
 
     if schm_info is None:
-        c_date = datetime.strptime(chrt_def.created_date, "%Y-%m-%d %H:%M:%S.%f")
+        c_date = chrt_def.created_date
 
         schm_info = SchmInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
                 tables=tables, origin="ATLAS", created_at=c_date, last_modified_at=m_date)
