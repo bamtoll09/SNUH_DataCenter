@@ -21,7 +21,7 @@ router.include_router(user_schema.router)
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser,
-    CertOath, SchmInfo, SchmCert
+    CertOath, ChrtInfo, ChrtCert
 )
 from utils.auth import verify_token
 

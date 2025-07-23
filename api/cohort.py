@@ -14,7 +14,7 @@ from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, Tabl
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
-    CertOath, SchmInfo, SchmCert
+    CertOath, ChrtInfo, ChrtCert
 )
 from utils.auth import verify_token
 
@@ -86,7 +86,7 @@ async def get_cohort_by_id(
 
     import random
 
-    stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
     schm_info = session_dc.exec(stmt).first()
     
     schm_info_temp = None
@@ -141,7 +141,7 @@ async def apply_cohort(
         raise HTTPException(status_code=404, detail="User id not found")
 
     # If there is already existed schema
-    stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
     schm_info = session_dc.exec(stmt).first()
 
     stmt = select(CohortDefinition).where(CohortDefinition.id == cohort_id)
@@ -157,7 +157,7 @@ async def apply_cohort(
     if schm_info is None:
         c_date = chrt_def.created_date
 
-        schm_info = SchmInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
+        schm_info = ChrtInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
                 tables=tables, origin="ATLAS", created_at=c_date, modified_at=m_date)
 
     else:
@@ -169,27 +169,27 @@ async def apply_cohort(
     session_dc.add(schm_info)
     session_dc.commit()
 
-    stmt = update(SchmInfo).where(SchmInfo.ext_id == cohort_id).values(tables=tables)
+    stmt = update(ChrtInfo).where(ChrtInfo.ext_id == cohort_id).values(tables=tables)
     session_dc.exec(stmt)
     session_dc.commit()
 
     # No it's dead
     # logger.debug(f"If schm_info existed? {schm_info}")
 
-    stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
 
     # There'll be existed it's own id
     schm_info = session_dc.exec(stmt).first()
 
     schema_id = schm_info.id
 
-    stmt = select(SchmCert).where(SchmCert.id == schema_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
     schm_cert = session_dc.exec(stmt).first()
     
     # Schema is new one
     if schm_cert is None:
         # Initialize(Create) SchmCert
-        schm_cert = SchmCert(id=schema_id)
+        schm_cert = ChrtCert(id=schema_id)
 
     # File handling
     docs_path = os.path.abspath(__file__ + "/../../documents")

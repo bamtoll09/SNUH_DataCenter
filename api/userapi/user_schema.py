@@ -16,7 +16,7 @@ from utils.structure import (
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser, SecUserRole,
-    CertOath, SchmInfo, SchmCert,
+    CertOath, ChrtInfo, ChrtCert,
     make_school_model
 )
 from utils.auth import verify_token
@@ -43,10 +43,10 @@ async def get_all_schemas(
 
     user_id = findout_id(session_atlas, user["sub"])
     
-    stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
     schm_infos = session_dc.exec(stmt).all()
 
-    stmt = select(SchmCert).where(SchmCert.id.in_([si.id for si in schm_infos]))
+    stmt = select(ChrtCert).where(ChrtCert.id.in_([si.id for si in schm_infos]))
     schm_certs = session_dc.exec(stmt).all()
 
     import random
@@ -182,7 +182,7 @@ async def get_schema_by_id(
         logger.error("Schema id not found")
         raise HTTPException(status_code=404, detail="Schema id not found")
     
-    stmt = select(SchmInfo).where(SchmInfo.id == schema_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.id == schema_id)
     schm_info = session_dc.exec(stmt).first()
 
     if schm_info is None:
@@ -190,7 +190,7 @@ async def get_schema_by_id(
         raise HTTPException(status_code=404, detail="Schema info not found")
     
     
-    stmt = select(SchmCert).where(SchmCert.id == schema_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
     schm_cert = session_dc.exec(stmt).first()
 
     if schm_cert is None:
@@ -226,11 +226,11 @@ async def apply_schema(
     user = Depends(verify_token)) -> str:
 
     # Table upload handling
-    stmt = select(SchmInfo).where(SchmInfo.id == schema_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.id == schema_id)
     schm_info = session_dc.exec(stmt).first()
 
 
-    stmt = update(SchmInfo).where(SchmInfo.id == schema_id).values(tables=tables)
+    stmt = update(ChrtInfo).where(ChrtInfo.id == schema_id).values(tables=tables)
     session_dc.exec(stmt)
     session_dc.commit()
 
@@ -315,7 +315,7 @@ async def apply_schema(
 
 
     # Update SchmCert
-    stmt = select(SchmCert).where(SchmCert.id == schema_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
     schm_cert = session_dc.exec(stmt).first()
 
 
@@ -343,7 +343,7 @@ async def sync_schemas(
     stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id)
     chrt_defs = session_atlas.exec(stmt).all()
 
-    stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
     schm_infos = session_dc.exec(stmt).all()
 
     synced = False
@@ -353,7 +353,7 @@ async def sync_schemas(
             if schm_info.ext_id == chrt_def.id:
                 if schm_info.modified_at < chrt_def.modified_date:
                     # SchmCert applied_at과 status, resolved_at 수정
-                    stmt = select(SchmCert).where(SchmCert.id == schm_info.id)
+                    stmt = select(ChrtCert).where(ChrtCert.id == schm_info.id)
                     schm_cert = session_dc.exec(stmt).first()
                     schm_cert.applied_at = datetime.now()
                     schm_cert.cur_status = "before_apply"

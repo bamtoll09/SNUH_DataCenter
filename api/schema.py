@@ -14,7 +14,7 @@ from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, Tabl
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
-    CertOath, SchmInfo, SchmCert
+    CertOath, ChrtInfo, ChrtCert
 )
 from utils.auth import verify_token
 

@@ -24,7 +24,7 @@ router.include_router(user.router)
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser, SecUserRole,
-    CertOath, SchmInfo, SchmCert
+    CertOath, ChrtInfo, ChrtCert
 )
 from utils.auth import verify_token
 
@@ -123,10 +123,10 @@ async def get_cohort(
     logger.debug(f"User role is {user_role}")
     
     if user_role == "admin":
-        stmt = select(SchmInfo)
+        stmt = select(ChrtInfo)
         schm = session_dc.exec(stmt).all()
 
-        stmt = select(SchmCert)
+        stmt = select(ChrtCert)
         schm_cert = session_dc.exec(stmt).all()
 
         schm_status = {e.id: e.cur_status for e in schm_cert}
@@ -155,10 +155,10 @@ async def get_cohort(
     elif user_role == "public":
         user_id = findout_id(session_atlas, user["sub"])
 
-        stmt = select(SchmInfo).where(SchmInfo.owner == user_id)
+        stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
         user_schm = session_dc.exec(stmt).all()
 
-        stmt = select(SchmCert).where(SchmCert.id.in_([c.id for c in user_schm]))
+        stmt = select(ChrtCert).where(ChrtCert.id.in_([c.id for c in user_schm]))
         user_schm_cert = session_dc.exec(stmt).all()
 
         user_schm_status = {e.id: e.cur_status for e in user_schm_cert}
@@ -204,8 +204,8 @@ async def sync_cohort(
     )).all()
 
     # Get DataCenter cohorts by the user ID
-    dc_chrts = session_dc.exec(select(SchmInfo).where(
-        SchmInfo.owner == user_id
+    dc_chrts = session_dc.exec(select(ChrtInfo).where(
+        ChrtInfo.owner == user_id
     )).all()
 
     # Check difference in length to find out there are new cohorts
@@ -218,7 +218,7 @@ async def sync_cohort(
     logger.debug(f"Need to add: {len(need_to_add)} cohorts")
 
     if len(need_to_add) > 0:
-        schm_info_list = [SchmInfo(ext_id=c.id, name=c.name, description=c.description, owner=user_id, tables=None, origin="ATLAS", created_at=c.created_date, modified_at=c.modified_date) for c in need_to_add]
+        schm_info_list = [ChrtInfo(ext_id=c.id, name=c.name, description=c.description, owner=user_id, tables=None, origin="ATLAS", created_at=c.created_date, modified_at=c.modified_date) for c in need_to_add]
 
         session_dc.add_all(schm_info_list)
         session_dc.commit()
@@ -228,13 +228,13 @@ async def sync_cohort(
 
         logger.debug(f"Externel ids {ext_ids}")
 
-        stmt = select(SchmInfo).where(SchmInfo.ext_id.in_(ext_ids))
+        stmt = select(ChrtInfo).where(ChrtInfo.ext_id.in_(ext_ids))
 
         new_schm_infos = session_dc.exec(stmt).all()
 
         logger.debug(f"New schm_infos {new_schm_infos}")
         
-        schm_cert_list = [SchmCert(id=d.id) for d in new_schm_infos]
+        schm_cert_list = [ChrtCert(id=d.id) for d in new_schm_infos]
 
         session_dc.add_all(schm_cert_list)
         session_dc.commit()
@@ -247,7 +247,7 @@ async def sync_cohort(
 
     if len(need_to_update) > 0:
         for update in need_to_update:
-            stmt = select(SchmInfo).where(SchmInfo.ext_id == update["ext_id"], SchmInfo.owner == user_id)
+            stmt = select(ChrtInfo).where(ChrtInfo.ext_id == update["ext_id"], ChrtInfo.owner == user_id)
             schm_info = session_dc.exec(stmt).first()
             if schm_info:
                 schm_info.modified_at = update["last_modified_at"]
@@ -278,16 +278,16 @@ async def search_schema(
 
     # parameter search is optional, if not provided, return all cohorts
     if len(items) == 0:
-        return session_dc.exec(select(SchmInfo)).all()
+        return session_dc.exec(select(ChrtInfo)).all()
 
     if condition == "schema":
         db_conditions = [
-            SchmInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
+            ChrtInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
             for kw in items
         ]
 
         logger.debug(f"{db_conditions}")
-        stmt = select(SchmInfo).where(or_(*db_conditions))
+        stmt = select(ChrtInfo).where(or_(*db_conditions))
 
     elif condition == "user":
         db_conditions = [
@@ -300,7 +300,7 @@ async def search_schema(
 
         user_id_list = [user.id for user in users]
 
-        stmt = select(SchmInfo).where(SchmInfo.owner.in_(user_id_list))
+        stmt = select(ChrtInfo).where(ChrtInfo.owner.in_(user_id_list))
 
     result = session_dc.exec(stmt).all()
 
@@ -324,7 +324,7 @@ async def search_schema(
 async def get_applies(
     session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)) -> list[SchmInfo]:
+    user = Depends(verify_token)) -> list[ChrtInfo]:
 
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
@@ -332,7 +332,7 @@ async def get_applies(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmInfo)
+    stmt = select(ChrtInfo)
     schm_infos = session_dc.exec(stmt).all()
 
     return schm_infos
@@ -359,7 +359,7 @@ async def get_applied_schema_by_id(
         logger.error("Schema id not found")
         raise HTTPException(status_code=404, detail="Schema id not found")
     
-    stmt = select(SchmInfo).where(SchmInfo.id == schema_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.id == schema_id)
     schm_info = session_dc.exec(stmt).first()
 
     if schm_info is None:
@@ -367,7 +367,7 @@ async def get_applied_schema_by_id(
         raise HTTPException(status_code=404, detail="Schema info not found")
     
     
-    stmt = select(SchmCert).where(SchmCert.id == schema_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
     schm_cert = session_dc.exec(stmt).first()
 
     if schm_cert is None:
@@ -411,7 +411,7 @@ async def approve_cohort(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmCert).where(SchmCert.id == cohort_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     schm_cert = session_dc.exec(stmt).first()
 
     schm_cert.cur_status = "approved"
@@ -438,7 +438,7 @@ async def approve_cohort(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmCert).where(SchmCert.id == cohort_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     schm_cert = session_dc.exec(stmt).first()
     
     schm_cert.cur_status = "rejected"

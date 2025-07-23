@@ -26,7 +26,7 @@ router.include_router(schema.router)
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition, SecUser, SecUserRole,
-    CertOath, SchmInfo, SchmCert
+    CertOath, ChrtInfo, ChrtCert
 )
 from utils.auth import verify_token
 
@@ -280,16 +280,16 @@ async def search_schema(
 
     # parameter search is optional, if not provided, return all cohorts
     if len(items) == 0:
-        return session_dc.exec(select(SchmInfo)).all()
+        return session_dc.exec(select(ChrtInfo)).all()
 
     if condition == "schema":
         db_conditions = [
-            SchmInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
+            ChrtInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
             for kw in items
         ]
 
         logger.debug(f"{db_conditions}")
-        stmt = select(SchmInfo).where(or_(*db_conditions))
+        stmt = select(ChrtInfo).where(or_(*db_conditions))
 
     elif condition == "user":
         db_conditions = [
@@ -302,7 +302,7 @@ async def search_schema(
 
         user_id_list = [user.id for user in users]
 
-        stmt = select(SchmInfo).where(SchmInfo.owner.in_(user_id_list))
+        stmt = select(ChrtInfo).where(ChrtInfo.owner.in_(user_id_list))
 
     result = session_dc.exec(stmt).all()
 
@@ -326,7 +326,7 @@ async def search_schema(
 async def get_applies(
     session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)) -> list[SchmInfo]:
+    user = Depends(verify_token)) -> list[ChrtInfo]:
 
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
@@ -334,7 +334,7 @@ async def get_applies(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmInfo)
+    stmt = select(ChrtInfo)
     schm_infos = session_dc.exec(stmt).all()
 
     return schm_infos
@@ -361,7 +361,7 @@ async def get_applied_schema_by_id(
         logger.error("Schema id not found")
         raise HTTPException(status_code=404, detail="Schema id not found")
     
-    stmt = select(SchmInfo).where(SchmInfo.id == schema_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.id == schema_id)
     schm_info = session_dc.exec(stmt).first()
 
     if schm_info is None:
@@ -369,7 +369,7 @@ async def get_applied_schema_by_id(
         raise HTTPException(status_code=404, detail="Schema info not found")
     
     
-    stmt = select(SchmCert).where(SchmCert.id == schema_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
     schm_cert = session_dc.exec(stmt).first()
 
     if schm_cert is None:
@@ -413,7 +413,7 @@ async def approve_cohort(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmCert).where(SchmCert.id == cohort_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     schm_cert = session_dc.exec(stmt).first()
 
     schm_cert.cur_status = "approved"
@@ -440,7 +440,7 @@ async def approve_cohort(
         logger.error("User is not an admin")
         raise HTTPException(status_code=403, detail="User is not an admin")
     
-    stmt = select(SchmCert).where(SchmCert.id == cohort_id)
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     schm_cert = session_dc.exec(stmt).first()
     
     schm_cert.cur_status = "rejected"

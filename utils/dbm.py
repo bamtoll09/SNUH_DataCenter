@@ -79,7 +79,7 @@ class Security(SQLModel, table=True):
 
 
 # -------- DataCenter Models --------
-class SchmCert(SQLModel, table=True):
+class ChrtCert(SQLModel, table=True):
     __tablename__ = "chrt_cert"
     __table_args__ = {"schema": "dc_management"}
     id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
@@ -89,7 +89,7 @@ class SchmCert(SQLModel, table=True):
     review: str = Field(default=None, nullable=True)
 
 
-class SchmInfo(SQLModel, table=True):
+class ChrtInfo(SQLModel, table=True):
     __tablename__ = "chrt_info"
     __table_args__ = {"schema": "dc_management"}
     id: Optional[int] = Field(primary_key=True, default=None)
@@ -102,7 +102,6 @@ class SchmInfo(SQLModel, table=True):
     description: str | None = Field(default=None, nullable=True)
     created_at: datetime = Field(default=None, nullable=False)
 
-
 class CertOath(SQLModel, table=True):
     __tablename__ = "cert_oath"
     __table_args__ = {"schema": "dc_management"}
@@ -112,6 +111,23 @@ class CertOath(SQLModel, table=True):
     type: str = Field(default=None, nullable=True)
     category: str = Field(default=None, nullable=True)
     document_for: int = Field(default=None, nullable=False, foreign_key="dc_management.chrt_info.id")
+
+class SchmInfo(SQLModel, table=True):
+    __tablename__ = "schm_info"
+    __table_args__ = {"schema": "dc_management"}
+    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
+    name: str = Field(index=True, nullable=False)
+    description: str | None = Field(default=None, nullable=True)
+
+class SchmConnectInfo(SQLModel, table=True):
+    __tablename__ = "schm_connect_info"
+    __table_args__ = {"schema": "dc_management"}
+    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
+    host: str = Field(default=None, nullable=False)
+    port: int | None = Field(default=None, nullable=True)
+    username: str = Field(default=None, nullable=False)
+    password: str | None = Field(default=None, nullable=True)
+
 
 
 # -------- Custom Schema --------
