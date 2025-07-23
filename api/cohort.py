@@ -103,7 +103,7 @@ async def get_cohort_by_id(
         for co in cert_oaths:
             docs_path = os.path.abspath(__file__ + "/../../../documents")
             
-            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + '/' + co.path), datetime.now()))
+            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path), datetime.now()))
 
         file_group_temp = FileGroupTemp(irb_drb_temps)
 
