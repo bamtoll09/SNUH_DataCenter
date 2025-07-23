@@ -201,7 +201,7 @@ async def apply_cohort(
     cert_oaths = session_dc.exec(stmt).all()
 
     for co in cert_oaths:
-        os.remove(f"{docs_path}/{co.path}")
+        os.remove(f"{docs_path}{co.path}")
         session_dc.delete(co)
     session_dc.commit()
 
