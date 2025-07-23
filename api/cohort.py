@@ -14,7 +14,8 @@ from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, Tabl
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
-    CertOath, ChrtInfo, ChrtCert
+    CertOath, ChrtInfo, ChrtCert,
+    SchmInfo
 )
 from utils.auth import verify_token
 
@@ -35,27 +36,23 @@ logger.setLevel(logging.DEBUG)
 @router.get("/")
 async def get_all_cohorts(
     session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session =  Depends(get_dc_session),
     user = Depends(verify_token)) -> list[dict]:
 
-    user_id = findout_id(session_atlas, user["sub"])
+    stmt = select(ChrtInfo)
+    chrt_infos = session_dc.exec(stmt).all()
 
-    stmt = select(CohortDefinition).order_by(CohortDefinition.modified_date.desc())
-    chrt_defs = session_atlas.exec(stmt).all()
+    ids = list(set([ci.id for ci in chrt_infos]))
 
-    user_id_list = [cd.created_by_id for cd in chrt_defs]
-    user_id_list = list(set(user_id_list))
-
-    user_id_name_mapping = mapping_id_name(session_atlas, user_id_list)
-
-    logger.debug(f"User id list: {user_id_list}, Mapping name: {user_id_name_mapping}")
+    id_name_mapping = mapping_id_name(session_atlas, ids)
 
     import random
 
     results = []
-    for i in range(len(chrt_defs)):
+    for ci in chrt_infos:
         results.append(
-            CohortInfoTemp(chrt_defs[i].id, chrt_defs[i].name, chrt_defs[i].description, random.randint(0, 203040),
-                             user_id_name_mapping[chrt_defs[i].created_by_id], chrt_defs[i].created_date, chrt_defs[i].modified_date, "ATLAS").json())
+            CohortInfoTemp(ci.id, ci.name, ci.description, random.randint(0, 203040),
+                             id_name_mapping[ci.owner], ci.created_at, ci.modified_at, "ATLAS").json())
 
     return results
 
@@ -70,29 +67,32 @@ async def get_cohort_by_id(
         logger.error("Cohort id not found")
         raise HTTPException(status_code=404, detail="Cohort id not found")
     
-    stmt = select(CohortDefinition).where(CohortDefinition.id == cohort_id)
-    chrt_def = session_atlas.exec(stmt).first()
+    stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
+    chrt_info = session_atlas.exec(stmt).first()
 
-    if chrt_def is None:
+    if chrt_info is None:
         logger.error("Schema id not found on DataCenter")
         raise HTTPException(status_code=404, detail="Schema id not found on DataCenter")
 
-    owner_name = findout_name(session_atlas, chrt_def.created_by_id)
+    owner_name = findout_name(session_atlas, chrt_info.owner)
     
     cohort_detail = CohortDetail(
-        id=cohort_id, name=chrt_def.name, description=chrt_def.description,
-        owner=owner_name, created_at=chrt_def.created_date, modified_at=chrt_def.modified_date,
+        id=cohort_id, name=chrt_info.name, description=chrt_info.description,
+        owner=owner_name, created_at=chrt_info.created_at, modified_at=chrt_info.created_at,
     )
 
     import random
 
-    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
-    schm_info = session_dc.exec(stmt).first()
-    
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
+    chrt_cert = session_dc.exec(stmt).first()
+
     schm_info_temp = None
     file_group_temp = None
 
-    if schm_info is not None:
+    if chrt_cert.cur_status != "before_apply":
+        stmt = select(SchmInfo).where(SchmInfo.id == cohort_id)
+        schm_info = session_dc.exec(stmt).first()
+
         schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
 
         stmt = select(CertOath).where(CertOath.document_for == schm_info.id)
@@ -103,14 +103,14 @@ async def get_cohort_by_id(
         for co in cert_oaths:
             docs_path = os.path.abspath(__file__ + "/../../documents")
             
-            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path), datetime.now()))
+            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path)))
 
         file_group_temp = FileGroupTemp(irb_drb_temps)
 
     results = CohortDetailTemp(
         CohortInfoTemp(
-            cohort_id, chrt_def.name, chrt_def.description,
-            random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date, "ATLAS"
+            cohort_id, chrt_info.name, chrt_info.description,
+            random.randint(0, 203040), owner_name, chrt_info.created_at, chrt_info.modified_at, "ATLAS"
         ),
         TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)]),
         schm_info_temp,

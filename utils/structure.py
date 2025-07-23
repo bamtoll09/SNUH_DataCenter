@@ -149,18 +149,16 @@ class SchemaInfoTemp():
         }
     
 class IRBDRBTemp():
-    def __init__(self, name: str, path: str, size: int, upload_date: datetime):
+    def __init__(self, name: str, path: str, size: int):
         self.name = name
         self.path = path
         self.size = size
-        self.upload_date = upload_date
 
     def json(self):
         return {
             "name": self.name,
             "path": self.path,
-            "size": f"{self.size / 1024 / 1024:.2}MB",
-            "uploadDate": self.upload_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            "size": f"{self.size / 1024 / 1024:.2}MB"
         }
 
 class FileGroupTemp():

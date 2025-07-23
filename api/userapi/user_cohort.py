@@ -35,20 +35,21 @@ logger.setLevel(logging.DEBUG)
 @router.get("/")
 async def get_all_cohorts(
     session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session = Depends(get_dc_session),
     user = Depends(verify_token)) -> list[dict]:
 
     user_id = findout_id(session_atlas, user["sub"])
 
-    stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id).order_by(CohortDefinition.modified_date.desc())
-    chrt_defs = session_atlas.exec(stmt).all()
+    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
+    chrt_infos = session_dc.exec(stmt).all()
 
     import random
 
     results = []
-    for i in range(len(chrt_defs)):
+    for ci in chrt_infos:
         results.append(
-            CohortInfoTemp(chrt_defs[i].id, chrt_defs[i].name, chrt_defs[i].description, random.randint(0, 203040),
-                             user["sub"], chrt_defs[i].created_date, chrt_defs[i].modified_date, "ATLAS").json())
+            CohortInfoTemp(ci.id, ci.name, ci.description, random.randint(0, 203040),
+                             user["sub"], ci.created_at, ci.modified_at, "ATLAS").json())
 
     return results
 
