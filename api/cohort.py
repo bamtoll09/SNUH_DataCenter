@@ -101,7 +101,7 @@ async def get_cohort_by_id(
         irb_drb_temps = []
 
         for co in cert_oaths:
-            docs_path = os.path.abspath(__file__ + "/../../../documents")
+            docs_path = os.path.abspath(__file__ + "/../../documents")
             
             irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path), datetime.now()))
 
