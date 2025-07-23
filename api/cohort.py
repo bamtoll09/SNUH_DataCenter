@@ -147,7 +147,7 @@ async def apply_cohort(
     stmt = select(CohortDefinition).where(CohortDefinition.id == cohort_id)
     chrt_def = session_atlas.exec(stmt).first()
 
-    m_date = datetime.strptime(chrt_def.modified_date, "%Y-%m-%d %H:%M:%S.%f")
+    m_date = chrt_def.modified_date
 
     # Create SchemaInfo
     # Table upload handling
