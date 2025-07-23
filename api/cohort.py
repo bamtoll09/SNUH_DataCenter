@@ -158,13 +158,13 @@ async def apply_cohort(
         c_date = chrt_def.created_date
 
         schm_info = SchmInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
-                tables=tables, origin="ATLAS", created_at=c_date, last_modified_at=m_date)
+                tables=tables, origin="ATLAS", created_at=c_date, modified_at=m_date)
 
     else:
         schm_info.name = name,
         schm_info.description = description,
         schm_info.owner = user_id,
-        schm_info.last_modified_at = m_date
+        schm_info.modified_at = m_date
 
     session_dc.add(schm_info)
     session_dc.commit()

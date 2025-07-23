@@ -66,7 +66,7 @@ async def get_all_schemas(
                 status=schm_status[si.id],
                 owner=user_id_name_mapping[si.owner],
                 created_at=si.created_at,
-                last_modified_at=si.last_modified_at
+                last_modified_at=si.modified_at
             )
 
             all_summary.append(cohort_summary.json())
@@ -108,7 +108,7 @@ async def get_all_schemas(
                 status=user_schm_status[si.id],
                 owner=user["sub"],
                 created_at=si.created_at,
-                last_modified_at=si.last_modified_at
+                last_modified_at=si.modified_at
             )
 
             user_summary.append(cohort_summary.json())
@@ -168,7 +168,7 @@ async def get_schema_by_id(
     
     cohort_detail = SchemaDetail(
         id=schema_id, name=schm_info.name, description=schm_info.description, status=schm_cert.cur_status,
-        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.last_modified_at,
+        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.modified_at,
         applied_at=schm_cert.applied_at, resolved_at=schm_cert.resolved_at, tables=schm_info.tables,
         files=cert_oath_list, review=schm_cert.review
     )
@@ -310,7 +310,7 @@ async def sync_schemas(
     for schm_info in schm_infos:
         for chrt_def in chrt_defs:
             if schm_info.ext_id == chrt_def.id:
-                if schm_info.last_modified_at < chrt_def.modified_date:
+                if schm_info.modified_at < chrt_def.modified_date:
                     # SchmCert applied_at과 status, resolved_at 수정
                     stmt = select(SchmCert).where(SchmCert.id == schm_info.id)
                     schm_cert = session_dc.exec(stmt).first()
@@ -324,7 +324,7 @@ async def sync_schemas(
                         session_dc.delete(co)     
 
                     # SchmInfo last_modified_at 수정 및 tables 제거
-                    schm_info.last_modified_at = chrt_def.modified_date
+                    schm_info.modified_at = chrt_def.modified_date
                     schm_info.tables = None
                     session_dc.add(schm_info)
                     session_dc.commit()

@@ -80,9 +80,9 @@ class Security(SQLModel, table=True):
 
 # -------- DataCenter Models --------
 class SchmCert(SQLModel, table=True):
-    __tablename__ = "schm_cert"
+    __tablename__ = "chrt_cert"
     __table_args__ = {"schema": "dc_management"}
-    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.schm_info.id")
+    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
     applied_at: datetime = Field(default=None, nullable=True)
     cur_status: int = Field(default=None, nullable=True)
     resolved_at: datetime = Field(default=None, nullable=True)
@@ -90,14 +90,14 @@ class SchmCert(SQLModel, table=True):
 
 
 class SchmInfo(SQLModel, table=True):
-    __tablename__ = "schm_info"
+    __tablename__ = "chrt_info"
     __table_args__ = {"schema": "dc_management"}
     id: Optional[int] = Field(primary_key=True, default=None)
     ext_id: int = Field(default=None, nullable=False)
     owner: int = Field(default=None, nullable=False)
     tables: List[str] | None = Field(sa_column=Column(ARRAY(String(100), dimensions=1), nullable=True))
     origin: str = Field(default=None, nullable=False)
-    last_modified_at: datetime = Field(default=None, nullable=False)
+    modified_at: datetime = Field(default=None, nullable=False)
     name: str = Field(index=True, nullable=False)
     description: str | None = Field(default=None, nullable=True)
     created_at: datetime = Field(default=None, nullable=False)
@@ -111,7 +111,7 @@ class CertOath(SQLModel, table=True):
     path: str = Field(default=None, nullable=True)
     type: str = Field(default=None, nullable=True)
     category: str = Field(default=None, nullable=True)
-    document_for: int = Field(default=None, nullable=False, foreign_key="dc_management.schm_info.id")
+    document_for: int = Field(default=None, nullable=False, foreign_key="dc_management.chrt_info.id")
 
 
 # -------- Custom Schema --------

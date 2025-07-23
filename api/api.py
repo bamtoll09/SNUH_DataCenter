@@ -388,7 +388,7 @@ async def get_applied_schema_by_id(
     
     cohort_detail = SchemaDetail(
         id=schema_id, name=schm_info.name, description=schm_info.description, status=schm_cert.cur_status,
-        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.last_modified_at,
+        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.modified_at,
         applied_at=schm_cert.applied_at, resolved_at=schm_cert.resolved_at, tables=schm_info.tables,
         files=cert_oath_list, review=schm_cert.review
     )

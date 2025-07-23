@@ -146,7 +146,7 @@ async def get_cohort(
                 status=schm_status[s.id],
                 owner=user_id_name_mapping[s.owner],
                 created_at=s.created_at,
-                last_modified_at=s.last_modified_at
+                last_modified_at=s.modified_at
             )
 
             all_summary.append(cohort_summary.json())
@@ -173,7 +173,7 @@ async def get_cohort(
                 status=user_schm_status[s.id],
                 owner=user["sub"],
                 created_at=s.created_at,
-                last_modified_at=s.last_modified_at
+                last_modified_at=s.modified_at
             )
 
             user_summary.append(cohort_summary.json())
@@ -218,7 +218,7 @@ async def sync_cohort(
     logger.debug(f"Need to add: {len(need_to_add)} cohorts")
 
     if len(need_to_add) > 0:
-        schm_info_list = [SchmInfo(ext_id=c.id, name=c.name, description=c.description, owner=user_id, tables=None, origin="ATLAS", created_at=c.created_date, last_modified_at=c.modified_date) for c in need_to_add]
+        schm_info_list = [SchmInfo(ext_id=c.id, name=c.name, description=c.description, owner=user_id, tables=None, origin="ATLAS", created_at=c.created_date, modified_at=c.modified_date) for c in need_to_add]
 
         session_dc.add_all(schm_info_list)
         session_dc.commit()
@@ -243,14 +243,14 @@ async def sync_cohort(
         return "Adding Cohorts to DataCenter is Completed"
     
     # Check modified time of cohorts
-    need_to_update = [{"ext_id": c.id, "name": c.name, "description": c.description, "tables": None, "last_modified_at": c.modified_date} for c in atlas_chrts if compare_dates([d for d in dc_chrts if c.id == d.ext_id][0].last_modified_at, c.modified_date)]
+    need_to_update = [{"ext_id": c.id, "name": c.name, "description": c.description, "tables": None, "last_modified_at": c.modified_date} for c in atlas_chrts if compare_dates([d for d in dc_chrts if c.id == d.ext_id][0].modified_at, c.modified_date)]
 
     if len(need_to_update) > 0:
         for update in need_to_update:
             stmt = select(SchmInfo).where(SchmInfo.ext_id == update["ext_id"], SchmInfo.owner == user_id)
             schm_info = session_dc.exec(stmt).first()
             if schm_info:
-                schm_info.last_modified_at = update["last_modified_at"]
+                schm_info.modified_at = update["last_modified_at"]
                 schm_info.tables = update["tables"]
                 session_dc.add(schm_info)
         
@@ -386,7 +386,7 @@ async def get_applied_schema_by_id(
     
     cohort_detail = SchemaDetail(
         id=schema_id, name=schm_info.name, description=schm_info.description, status=schm_cert.cur_status,
-        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.last_modified_at,
+        owner=owner_name, created_at=schm_info.created_at, last_modified_at=schm_info.modified_at,
         applied_at=schm_cert.applied_at, resolved_at=schm_cert.resolved_at, tables=schm_info.tables,
         files=cert_oath_list, review=schm_cert.review
     )
