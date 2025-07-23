@@ -148,17 +148,41 @@ class SchemaInfoTemp():
             "description": self.description
         }
     
+class IRBDRBTemp():
+    def __init__(self, name: str, path: str, size: int, upload_date: datetime):
+        self.name = name
+        self.path = path
+        self.size = size
+        self.upload_date = upload_date
+
+    def json(self):
+        return {
+            "name": self.name,
+            "path": self.path,
+            "size": f"{self.size / 1024 / 1024:.2}MB",
+            "uploadDate": self.upload_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        }
+
+class FileGroupTemp():
+    def __init__(self, file_list: list[IRBDRBTemp]):
+        self.file_list = file_list
+    
+    def json(self):
+        return [file.json() for file in self.file_list]
+    
 class CohortDetailTemp():
-    def __init__(self, cohort_info, table_info, schema_info):
+    def __init__(self, cohort_info, table_info, schema_info, file_group):
         self.cohort_info = cohort_info
         self.table_info = table_info
         self.schema_info = schema_info
+        self.file_group = file_group
 
     def json(self):
         return {
             "cohortInfo": self.cohort_info.json(),
             "tableInfo": self.table_info.json(),
-            "schemaInfo": self.schema_info.json() if self.schema_info is not None else {}
+            "schemaInfo": self.schema_info.json() if self.schema_info is not None else {},
+            "irb_drb": self.file_group.json() if self.file_group is not None else {}
         }
     
 class ConnectInfoTemp():

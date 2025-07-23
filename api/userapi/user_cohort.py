@@ -7,7 +7,7 @@ import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp
+from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp
 
 
 # -------- DBM Imports --------
@@ -83,9 +83,22 @@ async def get_cohort_by_id(
     schm_info = session_dc.exec(stmt).first()
     
     schm_info_temp = None
+    file_group_temp = None
 
     if schm_info is not None:
         schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
+
+        stmt = select(CertOath).where(CertOath.document_for == schm_info.id)
+        cert_oaths = session_dc.exec(stmt).all()
+
+        irb_drb_temps = []
+
+        for co in cert_oaths:
+            docs_path = os.path.abspath(__file__ + "/../../../documents")
+            
+            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + '/' + co.path), datetime.now()))
+
+        file_group_temp = FileGroupTemp(irb_drb_temps)
 
     results = CohortDetailTemp(
         CohortInfoTemp(
@@ -93,7 +106,8 @@ async def get_cohort_by_id(
             random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date, "ATLAS"
         ),
         TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)]),
-        schm_info_temp
+        schm_info_temp,
+        file_group_temp
     ).json()
 
     return results
