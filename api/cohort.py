@@ -144,7 +144,7 @@ async def apply_cohort(
     stmt = select(SchmInfo).where(SchmInfo.ext_id == cohort_id)
     schm_info = session_dc.exec(stmt).first()
 
-    stmt = select(CohortDefinition).shwere(CohortDefinition.id == cohort_id)
+    stmt = select(CohortDefinition).where(CohortDefinition.id == cohort_id)
     chrt_def = session_atlas.exec(stmt).first()
 
     m_date = datetime.strptime(chrt_def.modified_date, "%Y-%m-%d %H:%M:%S.%f")
