@@ -192,7 +192,7 @@ async def apply_cohort(
         schm_cert = SchmCert(id=schema_id)
 
     # File handling
-    docs_path = os.path.abspath(__file__ + "/../../../documents")
+    docs_path = os.path.abspath(__file__ + "/../../documents")
     if not os.path.exists(docs_path):
         os.makedirs(docs_path)
 
