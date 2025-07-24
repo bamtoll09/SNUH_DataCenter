@@ -115,14 +115,16 @@ class CertOath(SQLModel, table=True):
 class SchmInfo(SQLModel, table=True):
     __tablename__ = "schm_info"
     __table_args__ = {"schema": "dc_management"}
-    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
+    id: Optional[int] = Field(primary_key=True, default=None)
     name: str = Field(index=True, nullable=False)
     description: str | None = Field(default=None, nullable=True)
+    owner: int = Field(default=None, nullable=False)
+    schema_from: int = Field(default=None, nullable=False, foreign_key="dc_management.chrt_info.id")
 
 class SchmConnectInfo(SQLModel, table=True):
     __tablename__ = "schm_connect_info"
     __table_args__ = {"schema": "dc_management"}
-    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.chrt_info.id")
+    id: int = Field(primary_key=True, default=None, foreign_key="dc_management.schm_info.id")
     host: str = Field(default=None, nullable=False)
     port: int | None = Field(default=None, nullable=True)
     username: str = Field(default=None, nullable=False)

@@ -15,7 +15,7 @@ from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
     CertOath, ChrtInfo, ChrtCert,
-    SchmInfo
+    SchmInfo, SchmConnectInfo,
 )
 from utils.auth import verify_token
 
@@ -68,7 +68,7 @@ async def get_cohort_by_id(
         raise HTTPException(status_code=404, detail="Cohort id not found")
     
     stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
-    chrt_info = session_atlas.exec(stmt).first()
+    chrt_info = session_dc.exec(stmt).first()
 
     if chrt_info is None:
         logger.error("Schema id not found on DataCenter")
@@ -89,7 +89,7 @@ async def get_cohort_by_id(
     schm_info_temp = None
     file_group_temp = None
 
-    if chrt_cert.cur_status != "before_apply":
+    if chrt_cert is not None & chrt_cert.cur_status != "before_apply":
         stmt = select(SchmInfo).where(SchmInfo.id == cohort_id)
         schm_info = session_dc.exec(stmt).first()
 
@@ -122,8 +122,8 @@ async def get_cohort_by_id(
 @router.post("/id/{cohort_id}/apply")
 async def apply_cohort(
     cohort_id: int,
-    name: str = Form(...),
-    description: str = Form(...),
+    name: str | None = Form(...),           # for schema
+    description: str | None = Form(...),    # for schema
     tables: list[str] = Form(...),
     files: list[UploadFile] = File(...),
     session_atlas: Session = Depends(get_atlas_session),
@@ -140,56 +140,64 @@ async def apply_cohort(
         logger.error("User id not found")
         raise HTTPException(status_code=404, detail="User id not found")
 
-    # If there is already existed schema
-    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
-    schm_info = session_dc.exec(stmt).first()
+    # It should be existed
+    stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
+    chrt_info = session_dc.exec(stmt).first()
 
-    stmt = select(CohortDefinition).where(CohortDefinition.id == cohort_id)
-    chrt_def = session_atlas.exec(stmt).first()
+    # It name or description is empty set default
+    if name is None:
+        name = chrt_info.name
+    if description is None:
+        description = chrt_info.description
 
-    m_date = chrt_def.modified_date
 
-    # Create SchemaInfo
     # Table upload handling
     logger.debug(f"Tables: {tables} \n Files: {[file.filename for file in files]}")
     logger.debug(f"Table dimension: {len(tables)} / {len(tables[0])}")
 
-    if schm_info is None:
-        c_date = chrt_def.created_date
-
-        schm_info = ChrtInfo(ext_id=cohort_id, name=name, description=description, owner=user_id,
-                tables=tables, origin="ATLAS", created_at=c_date, modified_at=m_date)
-
-    else:
-        schm_info.name = name,
-        schm_info.description = description,
-        schm_info.owner = user_id,
-        schm_info.modified_at = m_date
-
-    session_dc.add(schm_info)
-    session_dc.commit()
-
-    stmt = update(ChrtInfo).where(ChrtInfo.ext_id == cohort_id).values(tables=tables)
+    stmt = update(ChrtInfo).where(ChrtInfo.id == cohort_id).values(tables=tables)
     session_dc.exec(stmt)
     session_dc.commit()
 
-    # No it's dead
-    # logger.debug(f"If schm_info existed? {schm_info}")
 
-    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
+    # # Get SchmInfo
+    # stmt = select(SchmInfo).where(SchmInfo.owner == user_id, SchmInfo.schema_from == cohort_id)
+    # schm_info = session_dc.exec(stmt).first()
 
-    # There'll be existed it's own id
-    schm_info = session_dc.exec(stmt).first()
+    # # Create SchmInfo
+    # if schm_info is None:
+    #     schm_info = SchmInfo(None, name, description, user_id, cohort_id)
+    
+    # # Already existed
+    # else:
+    #     schm_info.name = name
+    #     schm_info.description = description
 
-    schema_id = schm_info.id
+    # session_dc.add(schm_info)
+    # session_dc.commit()
 
-    stmt = select(ChrtCert).where(ChrtCert.id == schema_id)
+    # stmt = select(SchmInfo).where(SchmInfo.owner == user_id, SchmInfo.schema_from == cohort_id)
+    # schm_info = session_dc.exec(stmt).first()
+    
+    # # Get SchmConnectInfo
+    # stmt = select(SchmConnectInfo).where(SchmConnectInfo.id == schm_info.id)
+    # schm_cinfo = session_dc.exec(stmt).first()
+
+    # # Create SchmConnectInfo
+    # if schm_cinfo is None:
+    #     schm_cinfo = SchmConnectInfo(schm_info.id, "127.0.0.1", 5432, "postgres_userid", "mypass_randint")
+        
+    #     session_dc.add(schm_cinfo)
+    #     session_dc.commit()
+
+    # Get CohortCert
+    stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     schm_cert = session_dc.exec(stmt).first()
     
-    # Schema is new one
+    # If cohort is new one
     if schm_cert is None:
         # Initialize(Create) SchmCert
-        schm_cert = ChrtCert(id=schema_id)
+        schm_cert = ChrtCert(id=cohort_id)
 
     # File handling
     docs_path = os.path.abspath(__file__ + "/../../documents")
@@ -197,17 +205,18 @@ async def apply_cohort(
         os.makedirs(docs_path)
 
     # File removing
-    stmt = select(CertOath).where(CertOath.document_for == schema_id)
+    stmt = select(CertOath).where(CertOath.document_for == cohort_id)
     cert_oaths = session_dc.exec(stmt).all()
 
-    for co in cert_oaths:
-        os.remove(f"{docs_path}{co.path}")
-        session_dc.delete(co)
-    session_dc.commit()
+    if cert_oaths is not None:
+        for co in cert_oaths:
+            os.remove(f"{docs_path}{co.path}")
+            session_dc.delete(co)
+        session_dc.commit()
 
     # File upload
     # Folder checking and creation
-    cert_oath_dir = os.path.join(docs_path, str(schema_id))
+    cert_oath_dir = os.path.join(docs_path, str(cohort_id))
 
     if not os.path.exists(cert_oath_dir):
         logger.debug(f"Folder Created")
@@ -217,11 +226,11 @@ async def apply_cohort(
 
     for file in files:
         file_name = file.filename
-        file_path = f"/{schema_id}"
+        file_path = f"/{cohort_id}"
         file_type = file.content_type.split("/").pop()
         file_category = "IRB" if "irb" in file_name.lower() else "DRB" if "drb" in file_name.lower() else "ETC"
         
-        cert_oath = CertOath(name=file_name, path=file_path, type=file_type, category=file_category, document_for=schema_id)
+        cert_oath = CertOath(name=file_name, path=file_path, type=file_type, category=file_category, document_for=cohort_id)
         cert_oath_list.append(cert_oath)
 
     session_dc.add_all(cert_oath_list)
@@ -229,11 +238,11 @@ async def apply_cohort(
 
 
     # Change file_path by id
-    stmt = select(CertOath).where(CertOath.document_for == schema_id)
+    stmt = select(CertOath).where(CertOath.document_for == cohort_id)
     cert_oaths = session_dc.exec(stmt).all()
 
     for cert_oath in cert_oaths:
-        cert_oath.path += f"/{schema_id}_{cert_oath.id}.{cert_oath.type}"
+        cert_oath.path += f"/{cohort_id}_{cert_oath.id}.{cert_oath.type}"
 
         logger.debug(f"File path: {docs_path} + {cert_oath.path}")
 

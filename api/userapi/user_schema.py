@@ -328,54 +328,6 @@ async def apply_schema(
 
     return "Apply Success"
 
-@router.get("/sync")
-async def sync_schemas(
-    session_atlas: Session = Depends(get_atlas_session),
-    session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)):
-    
-    # Cohort 수정일과 Schema 촤종 수정일을 비교
-    # Cohort 수정일은 Schema 최종 수정일보다 같거나 이름.
-    # 만일 Cohort 수정일이 Schema 최종 수정일보다 늦으면, Schema를 재승인 받도록 함.
-
-    user_id = findout_id(session_atlas, user["sub"])
-
-    stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id)
-    chrt_defs = session_atlas.exec(stmt).all()
-
-    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
-    schm_infos = session_dc.exec(stmt).all()
-
-    synced = False
-
-    for schm_info in schm_infos:
-        for chrt_def in chrt_defs:
-            if schm_info.ext_id == chrt_def.id:
-                if schm_info.modified_at < chrt_def.modified_date:
-                    # SchmCert applied_at과 status, resolved_at 수정
-                    stmt = select(ChrtCert).where(ChrtCert.id == schm_info.id)
-                    schm_cert = session_dc.exec(stmt).first()
-                    schm_cert.applied_at = datetime.now()
-                    schm_cert.cur_status = "before_apply"
-
-                    # CertOaths 모두 제거
-                    stmt = select(CertOath).where(CertOath.document_for == schm_info.id)
-                    cert_oaths = session_dc.exec(stmt).all()
-                    for co in cert_oaths:
-                        session_dc.delete(co)     
-
-                    # SchmInfo last_modified_at 수정 및 tables 제거
-                    schm_info.modified_at = chrt_def.modified_date
-                    schm_info.tables = None
-                    session_dc.add(schm_info)
-                    session_dc.commit()
-
-                    synced = True
-
-    logger.debug("Synchronization Success" if synced else "All are up to date")
-
-    return "Synchronization Success" if synced else "All are up to date"
-
 @router.get("/id/{schema_id}/create")
 async def create_schema_on_db(
     schema_id: int,

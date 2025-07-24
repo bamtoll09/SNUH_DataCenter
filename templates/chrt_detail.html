@@ -256,7 +256,7 @@
             const id = window.location.href.split("/").pop();
             const token = localStorage.getItem("access_token");
 
-            const response = await fetch(`/temp/user/cohort/id/${id}`, {
+            const response = await fetch(`/temp/cohort/id/${id}`, {
                 headers: {
                     "Authorization": token ? `Bearer ${token}` : ""
                 }
@@ -330,7 +330,7 @@
             alert(formData.getAll('tables'))
 
             const token = localStorage.getItem("access_token");
-            const response = await fetch(`/temp/user/cohort/id/${id}/apply`, {
+            const response = await fetch(`/temp/cohort/id/${id}/apply`, {
                 method: 'POST',
                 headers: token ? { "Authorization": `Bearer ${token}` } : {},
                 body: formData
