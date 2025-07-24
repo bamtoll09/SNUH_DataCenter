@@ -42,9 +42,11 @@ async def get_all_cohorts(
     stmt = select(ChrtInfo)
     chrt_infos = session_dc.exec(stmt).all()
 
-    ids = list(set([ci.id for ci in chrt_infos]))
+    ids = list(set([ci.owner for ci in chrt_infos]))
 
     id_name_mapping = mapping_id_name(session_atlas, ids)
+
+    logger.debug(f"ids: {ids}, id_name_mapping: {id_name_mapping}")
 
     import random
 
@@ -89,8 +91,10 @@ async def get_cohort_by_id(
     schm_info_temp = None
     file_group_temp = None
 
-    if chrt_cert is not None & chrt_cert.cur_status != "before_apply":
-        stmt = select(SchmInfo).where(SchmInfo.id == cohort_id)
+    logger.debug(f"chrt_cert is {chrt_cert.cur_status}")
+
+    if chrt_cert is not None and chrt_cert.cur_status != "before_apply":
+        stmt = select(SchmInfo).where(SchmInfo.schema_from == cohort_id)
         schm_info = session_dc.exec(stmt).first()
 
         schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
@@ -160,35 +164,26 @@ async def apply_cohort(
     session_dc.commit()
 
 
-    # # Get SchmInfo
-    # stmt = select(SchmInfo).where(SchmInfo.owner == user_id, SchmInfo.schema_from == cohort_id)
-    # schm_info = session_dc.exec(stmt).first()
+    # Get SchmInfo
+    stmt = select(SchmInfo).where(SchmInfo.owner == user_id, SchmInfo.schema_from == cohort_id)
+    schm_info = session_dc.exec(stmt).first()
 
-    # # Create SchmInfo
-    # if schm_info is None:
-    #     schm_info = SchmInfo(None, name, description, user_id, cohort_id)
+    # Create SchmInfo
+    if schm_info is None:
+        schm_info = SchmInfo()
+        schm_info.id = None
+        schm_info.name = name
+        schm_info.description = description
+        schm_info.owner = user_id
+        schm_info.schema_from = cohort_id
     
-    # # Already existed
-    # else:
-    #     schm_info.name = name
-    #     schm_info.description = description
+    # Already existed
+    else:
+        schm_info.name = name
+        schm_info.description = description
 
-    # session_dc.add(schm_info)
-    # session_dc.commit()
-
-    # stmt = select(SchmInfo).where(SchmInfo.owner == user_id, SchmInfo.schema_from == cohort_id)
-    # schm_info = session_dc.exec(stmt).first()
-    
-    # # Get SchmConnectInfo
-    # stmt = select(SchmConnectInfo).where(SchmConnectInfo.id == schm_info.id)
-    # schm_cinfo = session_dc.exec(stmt).first()
-
-    # # Create SchmConnectInfo
-    # if schm_cinfo is None:
-    #     schm_cinfo = SchmConnectInfo(schm_info.id, "127.0.0.1", 5432, "postgres_userid", "mypass_randint")
-        
-    #     session_dc.add(schm_cinfo)
-    #     session_dc.commit()
+    session_dc.add(schm_info)
+    session_dc.commit()
 
     # Get CohortCert
     stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)

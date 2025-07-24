@@ -56,7 +56,7 @@
 async function fetchResults(query = "") {
     const token = localStorage.getItem("access_token");
     const params = query ? `?search=${encodeURIComponent(query)}` : "";
-    const response = await fetch(`/temp/admin/applies${params}`, {
+    const response = await fetch(`/api/admin/applies${params}`, {
         headers: {
             "Authorization": token ? `Bearer ${token}` : ""
         }
@@ -83,7 +83,7 @@ function renderResults(results) {
         li.style.cursor = "pointer";
         li.addEventListener("click", async () => {
             if (item.id) {
-                window.location.href = `/admin/${item.id}`;
+                window.location.href = `/render/admin/${item.id}`;
             }
         });
         list.appendChild(li);

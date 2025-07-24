@@ -7,7 +7,7 @@ import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp
+from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, CohortCertTemp, AppliedCohortDetailTemp, ConnectInfoTemp
 
 
 # -------- DBM Imports --------
@@ -33,23 +33,47 @@ logger.setLevel(logging.DEBUG)
 
 # -------- Routes --------
 @router.get("/")
-async def get_all_cohorts(
+async def get_my_cohorts(
     session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
     user = Depends(verify_token)) -> list[dict]:
 
     user_id = findout_id(session_atlas, user["sub"])
-
+    
     stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
     chrt_infos = session_dc.exec(stmt).all()
+
+    stmt = select(ChrtCert).where(ChrtCert.id.in_([ci.id for ci in chrt_infos]))
+    chrt_certs = session_dc.exec(stmt).all()
 
     import random
 
     results = []
-    for ci in chrt_infos:
-        results.append(
-            CohortInfoTemp(ci.id, ci.name, ci.description, random.randint(0, 203040),
-                             user["sub"], ci.created_at, ci.modified_at, "ATLAS").json())
+
+    for si in chrt_infos:
+        for sc in chrt_certs:
+            if si.id == sc.id:
+                cohort_info_temp = CohortInfoTemp(si.id, si.name, si.description,
+                                        random.randint(0, 203040), user["sub"], si.created_at, si.modified_at, si.origin)
+                schema_cert_temp = CohortCertTemp(sc.applied_at, sc.resolved_at, sc.cur_status, sc.review)
+                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)])
+                # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
+                connect_info_temp = None
+
+                if sc.cur_status == "approved":
+                    connect_info_temp = ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
+
+                # else:
+                #     raise HTTPException(status_code=404, detail="Schm info status not found")
+                
+                results.append(
+                    AppliedCohortDetailTemp(
+                        cohort_info_temp,
+                        schema_cert_temp,
+                        table_info_temp,
+                        connect_info_temp
+                    ).json()
+                )
 
     return results
 
@@ -301,6 +325,8 @@ async def sync_cohorts(
                         schm_cert = session_dc.exec(stmt).first()
                         schm_cert.applied_at = None
                         schm_cert.cur_status = "before_apply"
+                        schm_cert.resolved_at = None
+                        schm_cert.review = None
 
                         # CertOaths 모두 제거
                         stmt = select(CertOath).where(CertOath.document_for == ci.id)

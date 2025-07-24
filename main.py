@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 # -------- Importing Pydantic Models --------
-from utils.forms import LoginForm
+from utils.forms import LoginBody
 
 
 # -------- Importing API Routers --------
@@ -74,7 +74,7 @@ async def render_base() -> HTMLResponse:
 
 @app.post("/login", response_class=JSONResponse, tags=["login"])
 async def send_login_post(
-    loginForm: LoginForm,
+    loginForm: LoginBody,
     session_atlas: Session = Depends(get_atlas_session)) -> JSONResponse:
 
     logger.debug(f"Attempting login with id={loginForm.id} and pw")

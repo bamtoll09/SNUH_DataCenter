@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 
 from utils.structure import (
-    CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, SchemaCertTemp, SchemaDetailTemp, TABLE_NAME, ConnectInfoTemp,
+    CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, CohortCertTemp, AppliedCohortDetailTemp, TABLE_NAME, ConnectInfoTemp, TableInfoTemp
 )
 
 # -------- DBM Imports --------
@@ -58,8 +58,9 @@ async def get_all_schemas(
             if si.id == sc.id:
                 cohort_info_temp = CohortInfoTemp(si.id, si.name, si.description,
                                         random.randint(0, 203040), user["sub"], si.created_at, si.modified_at, si.origin)
-                schema_cert_temp = SchemaCertTemp(sc.applied_at, sc.resolved_at, sc.cur_status, sc.review)
-                tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
+                schema_cert_temp = CohortCertTemp(sc.applied_at, sc.resolved_at, sc.cur_status, sc.review)
+                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)])
+                # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
                 connect_info_temp = None
 
                 if sc.cur_status == "approved":
@@ -69,10 +70,10 @@ async def get_all_schemas(
                 #     raise HTTPException(status_code=404, detail="Schm info status not found")
                 
                 results.append(
-                    SchemaDetailTemp(
+                    AppliedCohortDetailTemp(
                         cohort_info_temp,
                         schema_cert_temp,
-                        tables,
+                        table_info_temp,
                         connect_info_temp
                     ).json()
                 )

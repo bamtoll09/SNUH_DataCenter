@@ -5,7 +5,7 @@ from pydantic import BaseModel
 #     loginForm: LoginForm):
 #     return "Good Job!"
 
-class LoginForm(BaseModel):
+class LoginBody(BaseModel):
     id: str
     pw: str
 
@@ -16,6 +16,20 @@ class LoginForm(BaseModel):
                 {
                     "id": "test",
                     "pw": "admin",
+                }
+            ]
+        }
+    }
+
+class ReviewBody(BaseModel):
+    review: str
+
+    # Request Example Value
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "review": "test",
                 }
             ]
         }

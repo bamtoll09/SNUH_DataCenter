@@ -136,6 +136,11 @@ class TableInfoTemp():
             data.append({"name": TABLE_NAME(i+1).name, "description": TABLE_DESCRIPTION[i], "recordCount": self.record_counts[i], "checked": self.checks[i]})
 
         return data
+    
+    def name_only(self):
+        data = [TABLE_NAME(i+1).name for i in range(len(self.record_counts)) if self.checks[i] == 1]
+
+        return data
 
 class SchemaInfoTemp():
     def __init__(self, name, description):
@@ -179,8 +184,8 @@ class CohortDetailTemp():
         return {
             "cohortInfo": self.cohort_info.json(),
             "tableInfo": self.table_info.json(),
-            "schemaInfo": self.schema_info.json() if self.schema_info is not None else {},
-            "irb_drb": self.file_group.json() if self.file_group is not None else {}
+            "schemaInfo": self.schema_info.json() if self.schema_info is not None else None,
+            "irb_drb": self.file_group.json() if self.file_group is not None else None
         }
     
 class ConnectInfoTemp():
@@ -202,7 +207,7 @@ class ConnectInfoTemp():
             "password": self.password
         }
     
-class SchemaCertTemp():
+class CohortCertTemp():
     def __init__(self, applied_date: datetime, resolved_date: datetime, status: str, review: str):
         self.applied_date = applied_date
         self.resolved_date = resolved_date
@@ -217,19 +222,31 @@ class SchemaCertTemp():
             "review": self.review
         }
 
-class SchemaDetailTemp():
-    def __init__(self, cohort_info: CohortInfoTemp, schema_cert: SchemaCertTemp, tables: list, connect_info: ConnectInfoTemp):
+class AppliedCohortDetailTemp():
+    def __init__(self, cohort_info: CohortInfoTemp, cohort_cert: CohortCertTemp, table_info: TableInfoTemp, connect_info: ConnectInfoTemp):
         self.cohort_info = cohort_info
-        self.schema_cert = schema_cert
-        self.tables = tables
+        self.schema_cert = cohort_cert
+        self.table_info = table_info
         self.connect_info = connect_info
 
-    def json(self):
+    def json(self, table_name_only = False):
         data = self.cohort_info.json()
         data.update(self.schema_cert.json())
-        data.update({"tables": self.tables, "connectInfo": self.connect_info.json() if self.connect_info is not None else {} })
+        data.update({"tables": self.table_info.name_only() if table_name_only else self.table_info.json(), "connectInfo": self.connect_info.json() if self.connect_info is not None else None })
         return data
+    
+class AdminCohortDetailTemp():
+    def __init__(self, cohort_info: CohortInfoTemp, cohort_cert: CohortCertTemp, table_info: TableInfoTemp, file_group: FileGroupTemp):
+        self.cohort_info = cohort_info
+        self.schema_cert = cohort_cert
+        self.table_info = table_info
+        self.file_group = file_group
 
+    def json(self, table_name_only = False):
+        data = self.cohort_info.json()
+        data.update(self.schema_cert.json())
+        data.update({"tables": self.table_info.name_only() if table_name_only else self.table_info.json(), "irb_drb": self.file_group.json()})
+        return data
 
 
 # -------- --------

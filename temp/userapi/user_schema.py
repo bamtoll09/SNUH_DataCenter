@@ -8,7 +8,7 @@ import aiofiles
 from datetime import datetime
 import json
 
-from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, SchemaCertTemp, SchemaDetailTemp, TABLE_NAME, ConnectInfoTemp
+from utils.structure import CohortDetail, SchemaSummary, SchemaDetail, OathFile, CohortInfoTemp, CohortCertTemp, AppliedCohortDetailTemp, TABLE_NAME, ConnectInfoTemp
 
 # -------- DBM Imports --------
 from utils.dbm import (

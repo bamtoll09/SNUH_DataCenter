@@ -252,11 +252,11 @@
             formData.append("review", reviewText);
 
             const token = localStorage.getItem("access_token");
-            const response = await fetch(`/temp/admin/applies/id/${id}/approve`, {
+            const response = await fetch(`/api/admin/applies/id/${id}/approve`, {
                 method: 'POST',
                 headers: token ? { "Authorization": `Bearer ${token}`, 
                 "Content-Type": "application/json"} : {},
-                body: JSON.stringify({ review: reviewText })
+                body: JSON.stringify({ "review": reviewText })
             });
 
             if (response.ok) {
@@ -278,11 +278,11 @@
             formData.append("review", reviewText);
 
             const token = localStorage.getItem("access_token");
-            const response = await fetch(`/temp/admin/applies/id/${id}/reject`, {
+            const response = await fetch(`/api/admin/applies/id/${id}/reject`, {
                 method: 'POST',
                 headers: token ? { "Authorization": `Bearer ${token}`, 
                 "Content-Type": "application/json"} : {},
-                body: JSON.stringify({ review: reviewText })
+                body: JSON.stringify({ "review": reviewText })
             });
 
             if (response.ok) {
