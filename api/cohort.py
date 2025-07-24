@@ -91,8 +91,6 @@ async def get_cohort_by_id(
     schm_info_temp = None
     file_group_temp = None
 
-    logger.debug(f"chrt_cert is {chrt_cert.cur_status}")
-
     if chrt_cert is not None and chrt_cert.cur_status != "before_apply":
         stmt = select(SchmInfo).where(SchmInfo.schema_from == cohort_id)
         schm_info = session_dc.exec(stmt).first()
