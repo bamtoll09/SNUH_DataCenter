@@ -10,8 +10,17 @@ from secret import postgres_url, datacenter_url
 
 
 # -------- DBM Setup --------
-atlas_engine = create_engine(postgres_url, pool_pre_ping=True)
-dc_engine = create_engine(datacenter_url, pool_pre_ping=True)
+atlas_engine = create_engine(postgres_url,
+                             pool_pre_ping=True,
+                             pool_recycle=900,     # 15 분마다 새로고침
+                             pool_size=10,         # 동시 연결 수
+                             max_overflow=5)
+
+dc_engine = create_engine(datacenter_url,
+                             pool_pre_ping=True,
+                             pool_recycle=900,     # 15 분마다 새로고침
+                             pool_size=10,         # 동시 연결 수
+                             max_overflow=5)
 
 def get_atlas_session():
     with Session(atlas_engine) as session:
