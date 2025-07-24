@@ -45,7 +45,7 @@ async def get_all_cohorts(
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
     if user_role == "public":
-        raise HTTPException(status_code=403, detail="User is not an admin")
+        raise HTTPException(status_code=402, detail="User is not an admin")
 
     return "Allowed"
 
@@ -58,7 +58,7 @@ async def get_all_applies(
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
     if user_role == "public":
-        raise HTTPException(status_code=403, detail="User is not an admin")
+        raise HTTPException(status_code=402, detail="User is not an admin")
 
     stmt = select(ChrtCert).where(ChrtCert.cur_status == "applied")
     chrt_certs = session_dc.exec(stmt).all()
@@ -122,7 +122,7 @@ async def approve_cohort_by_id(
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
     if user_role == "public":
-        raise HTTPException(status_code=403, detail="User is not an admin")
+        raise HTTPException(status_code=402, detail="User is not an admin")
     
     stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     chrt_cert = session_dc.exec(stmt).first()
@@ -175,7 +175,7 @@ async def reject_cohort_by_id(
     user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
 
     if user_role == "public":
-        raise HTTPException(status_code=403, detail="User is not an admin")
+        raise HTTPException(status_code=402, detail="User is not an admin")
     
     stmt = select(ChrtCert).where(ChrtCert.id == cohort_id)
     chrt_cert = session_dc.exec(stmt).first()
