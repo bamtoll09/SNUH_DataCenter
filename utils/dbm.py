@@ -10,8 +10,8 @@ from secret import postgres_url, datacenter_url
 
 
 # -------- DBM Setup --------
-atlas_engine = create_engine(postgres_url, echo=True)
-dc_engine = create_engine(datacenter_url, echo=True)
+atlas_engine = create_engine(postgres_url, pool_pre_ping=True)
+dc_engine = create_engine(datacenter_url, pool_pre_ping=True)
 
 def get_atlas_session():
     with Session(atlas_engine) as session:
