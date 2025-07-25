@@ -216,7 +216,7 @@ class CohortCertTemp():
 
     def json(self):
         return {
-            # "appliedDate": None if self.applied_date is None else self.applied_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+            "appliedDate": None if self.applied_date is None else self.applied_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             "resolvedDate": None if self.resolved_date is None else self.resolved_date.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             "status": self.status,
             "review": self.review
