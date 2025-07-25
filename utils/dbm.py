@@ -1,12 +1,19 @@
 from typing import List, Optional
 
 from sqlmodel import SQLModel, Field, create_engine, Session, Column, ARRAY, String
+from sqlalchemy import text, select
 
 from datetime import datetime
 
 
 # -------- Importing secret.py --------
 from secret import postgres_url, datacenter_url
+
+
+# -------- Logging Setup --------
+import logging
+logger = logging.getLogger("uvicorn.error")
+logger.setLevel(logging.DEBUG)
 
 
 # -------- DBM Setup --------
@@ -31,7 +38,15 @@ def get_dc_session():
         yield session
 
 
-# -------- CDM Models --------
+# -------- CDM Results Models --------
+class Cohort(SQLModel, table=True):
+    __tablename__ = "cohort"
+    __table_args__ = {"schema": "demo_cdm_results"}
+    cohort_definition_id: int = Field(primary_key=True, default=None)
+    subject_id: int = Field(primary_key=True, default=None)
+    cohort_start_date: datetime = Field(default=None, nullable=False)
+    cohort_end_date: datetime = Field(default=None, nullable=False)
+
 class PathwayAnalysisEvents(SQLModel, table=True):
     __tablename__ = "pathway_analysis_events"
     __table_args__ = {"schema": "demo_cdm_results"}
@@ -147,6 +162,68 @@ def make_school_model(schema: str):
         __tablename__ = "school"
         __table_args__ = {"schema": schema}
         id: int = Field(primary_key=True, default=None)
-        name: str = Field(default=None, nullable=False)
+        name: str | None = Field(default=None, sa_column=Column(String(1024), nullable=True))
 
     return School
+
+def copy_tables_by_cohort_id(
+        session_atlas: Session,
+        session_dc: Session,
+        schema_name: str,
+        cohort_id: int,
+        tables: list[str]):
+    
+    stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
+    chrt_info = session_dc.exec(stmt).first()
+
+    stmt = select(CohortDefinition).where(CohortDefinition.id == 1) # chrt_info.ext_id)
+    chrt_def = session_atlas.exec(stmt).scalars().first()
+
+    logger.debug(f"Cohort def is {type(chrt_def)}")
+
+    stmt = select(Cohort).where(Cohort.cohort_definition_id == chrt_def.id)
+    cohorts = session_atlas.exec(stmt).scalars().all()
+
+    subject_ids = [c.subject_id for c in cohorts]
+    subject_id_str = "(" + ", ".join(map(str, subject_ids)) + ")"
+    
+    ddls = [f"CREATE TABLE {schema_name}.{table} AS SELECT * FROM postgres.demo_cdm.{table} \
+WHERE person_id IN {subject_id_str}" for table in tables]
+    
+    # logger.debug(f"Executing: {ddls}")
+
+    for ddl in ddls:
+        session_dc.exec(text(ddl))
+    session_dc.commit()
+
+# -------- Custom User --------
+def provision_user(
+    session: Session,
+    new_user: str,
+    new_pwd: str,
+    target_db: str,
+    target_schema: str):
+
+    ddl = f"""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{new_user}') THEN
+            CREATE ROLE {new_user} LOGIN;
+        END IF;
+    END$$;
+
+    GRANT CONNECT ON DATABASE {target_db} TO {new_user};
+    GRANT USAGE  ON SCHEMA  {target_schema} TO {new_user};
+    GRANT SELECT ON ALL TABLES IN SCHEMA {target_schema} TO {new_user};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA {target_schema}
+        GRANT SELECT ON TABLES TO {new_user};
+    """
+
+    session.exec(text(ddl))
+
+    # 패스워드는 bindparam 으로 분리
+    session.exec(
+        text(f"ALTER ROLE {new_user} WITH PASSWORD :p"),
+        params={"p": new_pwd},
+    )
+    session.commit()

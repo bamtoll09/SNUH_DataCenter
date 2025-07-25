@@ -60,7 +60,7 @@ async def get_all_applies(
     if user_role == "public":
         raise HTTPException(status_code=402, detail="User is not an admin")
 
-    stmt = select(ChrtCert).where(ChrtCert.cur_status == "applied")
+    stmt = select(ChrtCert).where(ChrtCert.cur_status != "before_apply")
     chrt_certs = session_dc.exec(stmt).all()
 
     applied_ids = [cc.id for cc in chrt_certs]
