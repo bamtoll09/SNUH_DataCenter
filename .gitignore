@@ -4,3 +4,5 @@ documents/*
 __pycache__/
 */__pycache__/
 secret.py
+Dockerfile
+.dockerignore
