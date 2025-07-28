@@ -10,6 +10,10 @@ from datetime import datetime
 from secret import postgres_url, datacenter_url
 
 
+# -------- Importing structure.py --------
+from utils.structure import has_person_id, is_on_atlas
+
+
 # -------- Logging Setup --------
 import logging
 logger = logging.getLogger("uvicorn.error")
@@ -170,13 +174,12 @@ def copy_tables_by_cohort_id(
         session_atlas: Session,
         session_dc: Session,
         schema_name: str,
-        cohort_id: int,
-        tables: list[str]):
+        cohort_id: int):
     
     stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
-    chrt_info = session_dc.exec(stmt).first()
+    chrt_info = session_dc.exec(stmt).scalars().first()
 
-    stmt = select(CohortDefinition).where(CohortDefinition.id == 1) # chrt_info.ext_id)
+    stmt = select(CohortDefinition).where(CohortDefinition.id == chrt_info.ext_id)
     chrt_def = session_atlas.exec(stmt).scalars().first()
 
     logger.debug(f"Cohort def is {type(chrt_def)}")
@@ -186,27 +189,125 @@ def copy_tables_by_cohort_id(
 
     subject_ids = [c.subject_id for c in cohorts]
     subject_id_str = "(" + ", ".join(map(str, subject_ids)) + ")"
+
+    tables = chrt_info.tables
+
+    table_str = "(" + ", ".join(map(str, tables)) + ")"
+    table_str = table_str.lower()
+
+    logger.debug(f"Get tables {table_str}")
     
-    ddls = [f"CREATE TABLE {schema_name}.{table} AS SELECT * FROM postgres.demo_cdm.{table} \
-WHERE person_id IN {subject_id_str}" for table in tables]
+#     ddls = [f"CREATE TABLE {schema_name}.{table} AS SELECT * FROM postgres.demo_cdm.{table} \
+# WHERE person_id IN {subject_id_str}" for table in tables]
     
     # logger.debug(f"Executing: {ddls}")
 
-    for ddl in ddls:
-        session_dc.exec(text(ddl))
+    # for ddl in ddls:
+    #     session_dc.exec(text(ddl))
+    # session_dc.commit()
+
+
+    # DB A
+    base_db = "datacenter"
+    base_schema = schema_name
+
+    # DB B
+    target_db = "postgres"
+    target_schema = "demo_cdm"
+    fdw_server = "postgres_server"
+
+    app_user = "linker"
+    app_pw = "1234"
+
+    # DB B
+    ddl_b = f"""
+    GRANT CONNECT ON DATABASE {target_db} TO {app_user};
+    GRANT USAGE ON SCHEMA {target_schema} TO {app_user};
+    GRANT SELECT ON ALL TABLES IN SCHEMA {target_schema} TO {app_user};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA {target_schema}
+            GRANT SELECT ON TABLES TO {app_user};
+    """
+
+    # DB A
+    # Only once
+    ddl_a1 = f"""
+    CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+
+    DO $$BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{app_user}') THEN
+            CREATE ROLE {app_user} LOGIN PASSWORD '{app_pw}';
+        END IF;
+    END$$;
+
+    GRANT CONNECT ON DATABASE {base_db} TO {app_user};
+
+    DROP SERVER IF EXISTS {fdw_server} CASCADE;
+    CREATE SERVER {fdw_server}
+        FOREIGN DATA WRAPPER postgres_fdw
+        OPTIONs (host '127.0.0.1', port '5432', dbname '{target_db}');
+    
+    CREATE USER MAPPING IF NOT EXISTS
+        FOR postgres
+        SERVER {fdw_server}
+        OPTIONS (user '{app_user}', password '{app_pw}');
+    """
+
+    ddl_a2 = f"""
+    CREATE SCHEMA IF NOT EXISTS temp_fdw;
+
+    IMPORT FOREIGN SCHEMA {target_schema}
+        LIMIT TO {table_str}
+        FROM SERVER {fdw_server}
+        INTO temp_fdw;
+    """
+
+    ddl_tables = [f"""
+    CREATE TABLE IF NOT EXISTS {base_schema}.{table.lower()} AS
+    SELECT * FROM temp_fdw.{table.lower()} WHERE temp_fdw.{table.lower()}.person_id IN {subject_id_str};
+
+    ALTER TABLE {base_schema}.{table.lower()} ADD COLUMN IF NOT EXISTS id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
+    
+    GRANT SELECT, INSERT, UPDATE, DELETE
+        ON {base_schema}.{table.lower()} TO {app_user};
+
+    """ if has_person_id(table) else f"""
+
+    CREATE TABLE IF NOT EXISTS {base_schema}.{table.lower()} AS
+    SELECT * FROM temp_fdw.{table.lower()};
+    GRANT SELECT, INSERT, UPDATE, DELETE
+        ON {base_schema}.{table.lower()} TO {app_user};
+
+    """ for table in tables if is_on_atlas(table)]
+
+    ddl_drop = "DROP SCHEMA temp_fdw CASCADE;"
+
+    logger.debug(f"DDL TABLES length is {ddl_tables}")
+
+
+    session_dc.exec(text(ddl_a1))
     session_dc.commit()
+    session_atlas.exec(text(ddl_b))
+    session_atlas.commit()
+    session_dc.exec(text(ddl_a2))
+    session_dc.commit()
+
+    for ddl_table in ddl_tables:
+        session_dc.exec(text(ddl_table))
+
+    session_dc.exec(text(ddl_drop))
+    session_dc.commit()
+
 
 # -------- Custom User --------
 def provision_user(
     session: Session,
     new_user: str,
-    new_pwd: str,
+    new_pw: str,
     target_db: str,
     target_schema: str):
 
     ddl = f"""
-    DO $$
-    BEGIN
+    DO $$BEGIN
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{new_user}') THEN
             CREATE ROLE {new_user} LOGIN;
         END IF;
@@ -224,6 +325,6 @@ def provision_user(
     # 패스워드는 bindparam 으로 분리
     session.exec(
         text(f"ALTER ROLE {new_user} WITH PASSWORD :p"),
-        params={"p": new_pwd},
+        params={"p": new_pw},
     )
     session.commit()

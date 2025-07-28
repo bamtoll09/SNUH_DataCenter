@@ -20,10 +20,12 @@ from utils.dbm import (
     CohortDefinition,
     CertOath, ChrtInfo, ChrtCert,
     SchmInfo, SchmConnectInfo,
+    provision_user, copy_tables_by_cohort_id
 )
 from utils.auth import verify_token
 
 from sqlmodel import Session, select, update
+from sqlalchemy.schema import CreateSchema
 
 
 # -------- Tool Imports --------
@@ -157,6 +159,15 @@ async def approve_cohort_by_id(
         
         session_dc.add(schm_cinfo)
         session_dc.commit()
+
+        schema_name = f"schema_{user_id}_{schm_info.id}"
+
+        session_dc.exec(CreateSchema(schema_name, True))
+        session_dc.commit()
+
+        provision_user(session_dc, "u" + str(user_id), "1234", "datacenter", schema_name)
+
+        copy_tables_by_cohort_id(session_atlas, session_dc, schema_name, cohort_id)
 
     return {"msg": "success"}
 

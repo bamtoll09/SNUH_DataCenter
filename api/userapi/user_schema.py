@@ -341,30 +341,35 @@ async def create_schema_on_db(
 
     schema_name = f"schema_{user_id}_{schema_id}"
 
-    School = make_school_model(schema_name)
-    school = School()
+    # School = make_school_model(schema_name)
+    # school = School()
 
-    logger.debug(f"School's schema is {school.__table_args__}")
+    # logger.debug(f"School's schema is {school.__table_args__}")
     
 
-    from sqlalchemy.schema import CreateSchema, CreateTable
+    # from sqlalchemy.schema import CreateSchema, CreateTable
 
-    session_dc.exec(CreateSchema(schema_name, True))
-    session_dc.exec(CreateTable(school.__table__, if_not_exists=True))
+    # session_dc.exec(CreateSchema(schema_name, if_not_exists=True))
+    # session_dc.exec(CreateTable(school.__table__, if_not_exists=True))
     # session_dc.exec(text(f"CREATE SCHEMA IF NOT EXISTS :schema_name").bindparams(schema_name=schema_name))
     # session_dc.exec(text(f"CREATE TABLE IF NOT EXISTS :schema_name.school (id int PRIMARY KEY, name VARCHAR(1024))").bindparams(schema_name=schema_name))
     # session_dc.commit()
 
-    school.id = 1
-    school.name = "HanGang"
+    # school.id = 1
+    # school.name = "HanGang"
 
-    session_dc.add(school)
-    session_dc.commit()
+    # schools = session_dc.exec(select(School)).all()
+    # if len(schools) > 0:
+    #     for s in schools:
+    #         session_dc.delete(s)
+    #     session_dc.commit()
+
+    # session_dc.add(school)
+    # session_dc.commit()
 
     provision_user(session_dc, "u" + str(user_id), "1234", "datacenter", schema_name)
 
-    # copy_tables_by_cohort_id(session_atlas, session_dc, schema_name,
-    #                          schema_id, ["OBSERVATION_PERIOD"])
+    copy_tables_by_cohort_id(session_atlas, session_dc, schema_name, schema_id)
     
     return {"result": "success"}
 
