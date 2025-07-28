@@ -74,7 +74,8 @@ async def get_all_schemas(
                         cohort_info_temp,
                         schema_cert_temp,
                         table_info_temp,
-                        connect_info_temp
+                        connect_info_temp,
+                        False
                     ).json()
                 )
 

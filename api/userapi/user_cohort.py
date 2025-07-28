@@ -22,7 +22,7 @@ from sqlmodel import Session, select, update
 
 
 # -------- Tool Imports --------
-from utils.tools import findout_id, findout_name
+from utils.tools import findout_id, findout_name, get_syncable
 
 
 # -------- Logging Setup --------
@@ -46,21 +46,23 @@ async def get_my_cohorts(
     stmt = select(ChrtCert).where(ChrtCert.id.in_([ci.id for ci in chrt_infos]))
     chrt_certs = session_dc.exec(stmt).all()
 
+    syncables = get_syncable(session_atlas, session_dc, user["sub"])
+
     import random
 
     results = []
 
-    for si in chrt_infos:
-        for sc in chrt_certs:
-            if si.id == sc.id:
-                cohort_info_temp = CohortInfoTemp(si.id, si.name, si.description,
-                                        random.randint(0, 203040), user["sub"], si.created_at, si.modified_at, si.origin)
-                schema_cert_temp = CohortCertTemp(sc.applied_at, sc.resolved_at, sc.cur_status, sc.review)
+    for ci in chrt_infos:
+        for cc in chrt_certs:
+            if ci.id == cc.id:
+                cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description,
+                                        random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
+                schema_cert_temp = CohortCertTemp(cc.applied_at, cc.resolved_at, cc.cur_status, cc.review)
                 table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)])
                 # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
                 connect_info_temp = None
 
-                if sc.cur_status == "approved":
+                if cc.cur_status == "approved":
                     connect_info_temp = ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
 
                 # else:
@@ -71,7 +73,8 @@ async def get_my_cohorts(
                         cohort_info_temp,
                         schema_cert_temp,
                         table_info_temp,
-                        connect_info_temp
+                        connect_info_temp,
+                        syncables[ci.id]
                     ).json()
                 )
 
@@ -276,78 +279,126 @@ async def apply_cohort(
 
 @router.get("/sync")
 async def sync_cohorts(
+    cohort_id: int | None = None,
     session_atlas: Session = Depends(get_atlas_session),
     session_dc: Session = Depends(get_dc_session),
     user = Depends(verify_token)):
+
+    synced = False
+
+    user_id = findout_id(session_atlas, user["sub"])
+
+    if cohort_id is not None:
+        stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
+        chrt_info = session_dc.exec(stmt).first()
+
+        if chrt_info is None:
+            raise HTTPException(404, "Cohort is not found on yours")
+
+        stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id,
+                                              CohortDefinition.id == chrt_info.ext_id)
+        chrt_def = session_atlas.exec(stmt).first()
+
+        if chrt_def is None:
+            raise HTTPException(401, "This cohort is not yours")
+
+        if chrt_info.modified_at < chrt_def.modified_date:
+            # ChrtCert applied_at과 status, resolved_at 수정
+            stmt = select(ChrtCert).where(ChrtCert.id == chrt_info.id)
+            schm_cert = session_dc.exec(stmt).first()
+
+            if schm_cert is not None:
+                schm_cert.applied_at = None
+                schm_cert.cur_status = "before_apply"
+                schm_cert.resolved_at = None
+                schm_cert.review = None
+
+            # CertOaths 모두 제거
+            stmt = select(CertOath).where(CertOath.document_for == chrt_info.id)
+            cert_oaths = session_dc.exec(stmt).all()
+
+            if cert_oaths is not None:
+                for co in cert_oaths:
+                    session_dc.delete(co)
+
+            # SchmInfo 내용 제거
+            # stmt = select(SchmInfo).where()
+
+            # SchmConnectInfo 내용 제거
+
+            # ChrtInfo modified_at 수정 및 tables 제거
+            chrt_info.modified_at = chrt_def.modified_date
+            chrt_info.tables = None
+            session_dc.add(chrt_info)
+            session_dc.commit()
+
+            synced = True
     
+    else:
     # 외부 Cohort 수정일과 DC Cohort 수정일을 비교
     # 외부 Cohort 수정일은 DC Cohort 수정일보다 같거나 이름.
     # 만일 외부 Cohort 수정일이 DC Cohort 수정일보다 늦으면, Schema를 재승인 받도록 함.
 
-    user_id = findout_id(session_atlas, user["sub"])
+        stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id)
+        chrt_defs = session_atlas.exec(stmt).all()
 
-    stmt = select(CohortDefinition).where(CohortDefinition.created_by_id == user_id)
-    chrt_defs = session_atlas.exec(stmt).all()
+        logger.debug(f"chrt_defs length: {len(chrt_defs)}")
 
-    logger.debug(f"chrt_defs length: {len(chrt_defs)}")
+        stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
+        chrt_infos = session_dc.exec(stmt).all()
 
-    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
-    chrt_infos = session_dc.exec(stmt).all()
+        holding_ext_ids = [ci.ext_id for ci in chrt_infos]
 
-    synced = False
+        for cd in chrt_defs:
+            # New cohort detected
+            if cd.id not in holding_ext_ids:
+                chrt_info = ChrtInfo()
+                chrt_info.id = None
+                chrt_info.ext_id = cd.id
+                chrt_info.owner = cd.created_by_id
+                chrt_info.tables = None
+                chrt_info.origin = "ATLAS"
+                chrt_info.modified_at = cd.modified_date
+                chrt_info.name = cd.name
+                chrt_info.description = cd.description
+                chrt_info.created_at = cd.created_date
+                session_dc.add(chrt_info)
+                
+                synced = True
 
-    holding_ext_ids = [ci.ext_id for ci in chrt_infos]
+            # Existed cohort
+            else:
+                for ci in chrt_infos:
+                    if ci.ext_id == cd.id:
+                        if ci.modified_at < cd.modified_date:
+                            # ChrtCert applied_at과 status, resolved_at 수정
+                            stmt = select(ChrtCert).where(ChrtCert.id == ci.id)
+                            schm_cert = session_dc.exec(stmt).first()
+                            schm_cert.applied_at = None
+                            schm_cert.cur_status = "before_apply"
+                            schm_cert.resolved_at = None
+                            schm_cert.review = None
 
-    for cd in chrt_defs:
-        # New cohort detected
-        if cd.id not in holding_ext_ids:
-            chrt_info = ChrtInfo()
-            chrt_info.id = None
-            chrt_info.ext_id = cd.id
-            chrt_info.owner = cd.created_by_id
-            chrt_info.tables = None
-            chrt_info.origin = "ATLAS"
-            chrt_info.modified_at = cd.modified_date
-            chrt_info.name = cd.name
-            chrt_info.description = cd.description
-            chrt_info.created_at = cd.created_date
-            session_dc.add(chrt_info)
-            
-            synced = True
+                            # CertOaths 모두 제거
+                            stmt = select(CertOath).where(CertOath.document_for == ci.id)
+                            cert_oaths = session_dc.exec(stmt).all()
 
-        # Existed cohort
-        else:
-            for ci in chrt_infos:
-                if ci.ext_id == cd.id:
-                    if ci.modified_at < cd.modified_date:
-                        # ChrtCert applied_at과 status, resolved_at 수정
-                        stmt = select(ChrtCert).where(ChrtCert.id == ci.id)
-                        schm_cert = session_dc.exec(stmt).first()
-                        schm_cert.applied_at = None
-                        schm_cert.cur_status = "before_apply"
-                        schm_cert.resolved_at = None
-                        schm_cert.review = None
+                            if cert_oaths is not None:
+                                for co in cert_oaths:
+                                    session_dc.delete(co)
 
-                        # CertOaths 모두 제거
-                        stmt = select(CertOath).where(CertOath.document_for == ci.id)
-                        cert_oaths = session_dc.exec(stmt).all()
+                            # SchmInfo 내용 제거
+                            # stmt = select(SchmInfo).where()
 
-                        if cert_oaths is not None:
-                            for co in cert_oaths:
-                                session_dc.delete(co)
+                            # SchmConnectInfo 내용 제거
 
-                        # SchmInfo 내용 제거
-                        # stmt = select(SchmInfo).where()
+                            # ChrtInfo modified_at 수정 및 tables 제거
+                            ci.modified_at = cd.modified_date
+                            ci.tables = None
+                            session_dc.add(ci)
+                            session_dc.commit()
 
-                        # SchmConnectInfo 내용 제거
-
-                        # ChrtInfo modified_at 수정 및 tables 제거
-                        ci.modified_at = cd.modified_date
-                        ci.tables = None
-                        session_dc.add(ci)
-                        session_dc.commit()
-
-                        synced = True
+                            synced = True
 
     session_dc.commit()
 

@@ -235,15 +235,17 @@ class CohortCertTemp():
         }
 
 class AppliedCohortDetailTemp():
-    def __init__(self, cohort_info: CohortInfoTemp, cohort_cert: CohortCertTemp, table_info: TableInfoTemp, connect_info: ConnectInfoTemp):
+    def __init__(self, cohort_info: CohortInfoTemp, cohort_cert: CohortCertTemp, table_info: TableInfoTemp, connect_info: ConnectInfoTemp, is_synced: bool):
         self.cohort_info = cohort_info
         self.schema_cert = cohort_cert
         self.table_info = table_info
         self.connect_info = connect_info
+        self.is_synced = is_synced
 
     def json(self, table_name_only = False):
         data = self.cohort_info.json()
         data.update(self.schema_cert.json())
+        data.update({"isSynced": self.is_synced})
         data.update({"tables": self.table_info.name_only() if table_name_only else self.table_info.json(), "connectInfo": self.connect_info.json() if self.connect_info is not None else None })
         return data
     

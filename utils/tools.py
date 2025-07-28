@@ -6,7 +6,9 @@ from sqlmodel import select, Session
 
 # -------- DBM Imports --------
 from utils.dbm import (
+    CohortDefinition,
     SecUser, SecUserRole,
+    ChrtInfo, SchmInfo
 )
 
 from sqlmodel import Session, select, or_
@@ -75,3 +77,28 @@ def mapping_id_name(session_atlas: Session, ids: list[int]) -> dict:
     users = session_atlas.exec(stmt).all()
 
     return {user.id: user.name for user in users}
+
+def get_syncable(session_atlas: Session, session_dc: Session, name: str) -> dict:
+
+    results = dict()
+
+    stmt = select(SecUser).where(SecUser.name == name)
+    sec_user = session_atlas.exec(stmt).first()
+
+    stmt = select(ChrtInfo).where(ChrtInfo.owner == sec_user.id)
+    chrt_infos = session_dc.exec(stmt).all()
+
+    holding_ext_ids = [ci.ext_id for ci in chrt_infos]
+
+    stmt = select(CohortDefinition).where(CohortDefinition.id.in_(holding_ext_ids))
+    chrt_defs = session_atlas.exec(stmt).all()
+
+    for cd in chrt_defs:
+        for ci in chrt_infos:
+            if ci.ext_id == cd.id:
+                if ci.modified_at < cd.modified_date:
+                    results[ci.id] = False
+                else:
+                    results[ci.id] = True
+
+    return results
