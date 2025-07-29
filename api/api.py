@@ -15,11 +15,10 @@ from utils.structure import SchemaSummary, SchemaDetail, OathFile
 
 
 # -------- Router Imports --------
-from api import user, cohort, schema, admin
+from api import user, cohort, admin
 
 router.include_router(user.router)
 router.include_router(cohort.router)
-router.include_router(schema.router)
 router.include_router(admin.router)
 
 

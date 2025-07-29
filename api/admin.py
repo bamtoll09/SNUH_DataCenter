@@ -228,3 +228,38 @@ async def reject_cohort_by_id(
         session_dc.commit()
 
     return {"msg": "success"}
+
+@router.get("/clean/document")
+async def clean_documents(
+    session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)):
+
+    user_role = "public" if findout_role(session_atlas, user["sub"]) else "admin"
+
+    if user_role == "public":
+        raise HTTPException(status_code=402, detail="User is not an admin")
+    
+    docs_path = os.path.abspath(__file__ + "/../../documents")
+
+    stmt = select(CertOath)
+    cert_oaths = session_dc.exec(stmt).all()
+
+    if cert_oaths is None:
+        logger.debug(f"Cert oath is empty")
+        return True
+
+    co_doc_froms = [co.document_from for co in cert_oaths]
+
+    doc_listdir = os.listdir(docs_path)
+    logger.debug(f"In docs: {doc_listdir}")
+
+    if cert_oaths is not None:
+        for co in cert_oaths:
+            file_path = docs_path + "/" + co.path
+            
+    return True
+
+@router.get("/clean/schema")
+async def clean_schema():
+    pass
