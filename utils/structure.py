@@ -2,6 +2,12 @@ from datetime import datetime
 from enum import Enum, auto
 
 
+# -------- Logging Setup --------
+import logging
+logger = logging.getLogger("uvicorn.error")
+logger.setLevel(logging.DEBUG)
+
+
 class TABLE_NAME(Enum):
     PERSON = auto()
     OBSERVATION_PERIOD = auto()

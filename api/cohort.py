@@ -110,7 +110,7 @@ async def get_cohort_by_id(
         file_group_temp = FileGroupTemp(irb_drb_temps)
 
 
-    tables = [False for i in range(46)] if chrt_info.tables is None else [True if table == t else False for t in chrt_info.tables for table in list(TABLE_NAME.__members__.keys())]
+    tables = [False for i in range(46)] if chrt_info.tables is None else [True if table in chrt_info.tables else False for table in list(TABLE_NAME.__members__.keys())]
 
     results = CohortDetailTemp(
         CohortInfoTemp(

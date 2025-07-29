@@ -84,7 +84,7 @@ async def get_all_applies(
     for ci in chrt_infos:
         for cr in chrt_certs:
             if ci.id == cr.id:
-                tables = [False for i in range(46)] if ci.tables is None else [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
+                tables = [False for i in range(46)] if ci.tables is None else [True if table in ci.tables else False for table in list(TABLE_NAME.__members__.keys())]
                 cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description, random.randint(0, 203040),
                                                 id_name_mapping[ci.owner], ci.created_at, ci.modified_at, ci.origin)
                 cohort_cert_temp = CohortCertTemp(cr.applied_at, cr.resolved_at, cr.cur_status, cr.review)
