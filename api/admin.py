@@ -24,8 +24,9 @@ from utils.dbm import (
 )
 from utils.auth import verify_token
 
-from sqlmodel import Session, select, update
-from sqlalchemy.schema import CreateSchema
+from sqlmodel import Session, select, update, or_
+from sqlalchemy import Table, MetaData, Column, String
+from sqlalchemy.schema import CreateSchema, DropSchema
 
 
 # -------- Tool Imports --------
@@ -242,6 +243,34 @@ async def clean_documents(
     
     docs_path = os.path.abspath(__file__ + "/../../documents")
 
+    # 1. documents 내 폴더 이름이 db에 cohort_id로 정의되어 있지 않은 경우,
+    #    해당 폴더 삭제
+    stmt = select(ChrtInfo)
+    chrt_infos = session_dc.exec(stmt).all()
+
+    cids = [ci.id for ci in chrt_infos]
+
+    doc_listdir = os.listdir(docs_path)
+
+    if chrt_infos is None:
+        logger.debug(f"Cohort info is empty")
+        return True
+    
+    for dir in doc_listdir: 
+        if not int(dir) in cids:
+            doc_listfile = os.listdir(docs_path + "/" + dir)
+
+            for file in doc_listfile:
+                os.remove(f"{docs_path}/{dir}/{file}")
+                # logger.debug(f"File is removed: {dir}/{file}")
+
+            os.removedirs(f"{docs_path}/{dir}")
+            logger.debug(f"Folder is removed: {dir}")
+
+    # 2. documents 내 {cohort_id} 폴더 안에 cert oath 테이블에 없는 파일이 존재하는 경우,
+    #    해당 파일 삭제
+    doc_listdir = os.listdir(docs_path)
+
     stmt = select(CertOath)
     cert_oaths = session_dc.exec(stmt).all()
 
@@ -249,17 +278,53 @@ async def clean_documents(
         logger.debug(f"Cert oath is empty")
         return True
 
-    co_doc_froms = [co.document_from for co in cert_oaths]
+    cert_oath_paths = [co.path for co in cert_oaths]
 
-    doc_listdir = os.listdir(docs_path)
-    logger.debug(f"In docs: {doc_listdir}")
+    for dir in doc_listdir:
+        doc_listfile = os.listdir(docs_path + "/" + dir)
 
-    if cert_oaths is not None:
-        for co in cert_oaths:
-            file_path = docs_path + "/" + co.path
+        for file in doc_listfile:
+            if not f"/{dir}/{file}" in cert_oath_paths:
+                os.remove(f"{docs_path}/{dir}/{file}")
+                logger.debug(f"File is removed: {dir}/{file}")
             
     return True
 
 @router.get("/clean/schema")
-async def clean_schema():
-    pass
+async def clean_schema(
+    session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)):
+
+    # SchmInfo 존재 여부에 따라 로직이 달라질 예정
+    stmt = select(SchmInfo)
+    schm_infos = session_dc.exec(stmt).all()
+
+    if schm_infos is None:
+        logger.debug("Schema info is empty")
+        return True
+    
+
+    metadata = MetaData()
+
+    schemata = Table(
+        "schemata",
+        metadata,
+        Column("schema_name", String, primary_key=True),
+        schema="information_schema"
+    )
+
+    stmt = select(schemata.c.schema_name).where(or_(schemata.c.schema_name.ilike(f"%schema_%")))
+    schema_names = session_dc.exec(stmt).all()
+
+    logger.debug(f"Schema List: {schema_names}")
+
+    schema_names_on_db = [f"schema_{si.owner}_{si.id}" for si in schm_infos]
+
+    for schema_name in schema_names:
+        if not schema_name in schema_names_on_db:
+            session_dc.exec(DropSchema(schema_name, cascade=True, if_exists=True))
+            logger.debug(f"Schema is removed: {schema_name}")
+    session_dc.commit()
+
+    return True
