@@ -53,6 +53,9 @@ async def get_my_cohorts(
 
     results = []
 
+    if chrt_certs is None:
+        return results
+
     for ci in chrt_infos:
         for cc in chrt_certs:
             if ci.id == cc.id:
@@ -102,6 +105,9 @@ async def get_my_applied_cohorts(
     import random
 
     results = []
+
+    if chrt_certs is None:
+        return results
 
     for ci in chrt_infos:
         for cc in chrt_certs:
