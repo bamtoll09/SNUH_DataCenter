@@ -15,7 +15,7 @@ from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
     CertOath, ChrtInfo, ChrtCert,
-    SchmInfo
+    SchmInfo, SchmConnectInfo
 )
 from utils.auth import verify_token
 
@@ -118,11 +118,29 @@ async def get_my_applied_cohorts(
                                         random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
                 schema_cert_temp = CohortCertTemp(cc.applied_at, cc.resolved_at, cc.cur_status, cc.review)
                 table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], tables)
-                # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
+                
+                # IRB DRB
+                stmt = select(CertOath).where(CertOath.document_for == ci.id)
+                cert_oaths = session_dc.exec(stmt).all()
+
+                irb_drb_temps = []
+
+                for co in cert_oaths:
+                    docs_path = os.path.abspath(__file__ + "/../../documents")
+
+                    irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path)))
+
+                file_group_temp = FileGroupTemp(irb_drb_temps)
+
                 connect_info_temp = None
 
                 if cc.cur_status == "approved":
-                    connect_info_temp = ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
+                    stmt = select(SchmInfo).where(SchmInfo.schema_from == ci.id)
+                    schm_info = session_dc.exec(stmt).first()
+
+                    stmt = select(SchmConnectInfo).where(SchmConnectInfo.id == schm_info.id)
+                    schm_conn_info = session_dc.exec(stmt).first()
+                    connect_info_temp = ConnectInfoTemp(schm_conn_info.host, "datacenter", schm_conn_info.username, schm_conn_info.port, f"schema_{schm_info.owner}_{schm_info.id}", schm_conn_info.password)
 
                 # else:
                 #     raise HTTPException(status_code=404, detail="Schm info status not found")
@@ -132,6 +150,7 @@ async def get_my_applied_cohorts(
                         cohort_info_temp,
                         schema_cert_temp,
                         table_info_temp,
+                        file_group_temp,
                         connect_info_temp,
                         syncables[ci.id]
                     ).json()
