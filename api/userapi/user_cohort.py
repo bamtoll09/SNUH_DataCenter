@@ -59,7 +59,7 @@ async def get_my_cohorts(
     for ci in chrt_infos:
         for cc in chrt_certs:
             if ci.id == cc.id:
-                tables = [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
+                tables = [False for i in range(46)] if ci.tables is None else [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
 
                 cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description,
                                         random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
@@ -112,7 +112,7 @@ async def get_my_applied_cohorts(
     for ci in chrt_infos:
         for cc in chrt_certs:
             if ci.id == cc.id:
-                tables = [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
+                tables = [False for i in range(46)] if ci.tables is None else [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
 
                 cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description,
                                         random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
@@ -191,7 +191,7 @@ async def get_cohort_by_id(
 
     file_group_temp = FileGroupTemp(irb_drb_temps)
 
-    tables = [True if table == t else False for t in chrt_info.tables for table in list(TABLE_NAME.__members__.keys())]
+    tables = [False for i in range(46)] if chrt_info.tables is None else [True if table == t else False for t in chrt_info.tables for table in list(TABLE_NAME.__members__.keys())]
 
     results = CohortDetailTemp(
         CohortInfoTemp(
