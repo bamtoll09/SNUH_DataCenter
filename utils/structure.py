@@ -100,15 +100,21 @@ TABLE_DESCRIPTION = [
 
 def has_person_id(table_name: str):
     return table_name.upper() in ['PERSON', 'OBSERVATION_PERIOD', 'SPECIMEN', 'DEATH', 'VISIT_OCCURRENCE', 'VISIT_DETAIL', 'PROCEDURE_OCCURRENCE', 'DRUG_EXPOSURE', 'DEVICE_EXPOSURE',
-'CONDITION_OCCURRENCE', 'MEASUREMENT', 'NOTE', 'OBSERVATION', 'EPISODE', 'BIO_SIGNAL', 'IMAGE_OCCURRENCE', 'IMAGE_FEATURE', 'IMAGING_STUDY',
-'IMAGING_SERIES', 'IMAGING_ANNOTATION', 'FILEPATH', 'CONDITION_ERA', 'DRUG_ERA', 'DOSE_ERA', 'RELATIONSHIP', 'CONCEPT_ANCESTOR', 'PAYER_PLAN_PERIOD']
+                                  'CONDITION_OCCURRENCE', 'MEASUREMENT', 'NOTE', 'OBSERVATION', 'EPISODE', 'BIO_SIGNAL', 'IMAGE_OCCURRENCE', 'IMAGE_FEATURE', 'IMAGING_STUDY',
+                                  'IMAGING_SERIES', 'IMAGING_ANNOTATION', 'FILEPATH', 'CONDITION_ERA', 'DRUG_ERA', 'DOSE_ERA', 'PAYER_PLAN_PERIOD']
 
 def is_on_atlas(table_name: str):
     return table_name.upper() in ['PERSON', 'OBSERVATION_PERIOD', 'SPECIMEN', 'DEATH', 'VISIT_OCCURRENCE', 'VISIT_DETAIL', 'PROCEDURE_OCCURRENCE', 'DRUG_EXPOSURE', 'DEVICE_EXPOSURE',
-                                  'CONDITION_OCCURRENCE', 'MEASUREMENT', 'NOTE', 'NOTE_NLP', 'OBSERVATION', 'EPISODE', 'FACT_RELATIONSHIP',
+                                  'CONDITION_OCCURRENCE', 'MEASUREMENT', 'NOTE', 'NOTE_NLP', 'OBSERVATION', 'FACT_RELATIONSHIP',
                                   'CONDITION_ERA', 'DRUG_ERA', 'DOSE_ERA', 'COHORT_DEFINITION', 'LOCATION', 'CARE_SITE', 'PROVIDER', 'CONCEPT', 'VOCABULARY', 'DOMAIN', 'CONCEPT_CLASS',
                                   'CONCEPT_SYNONYM', 'CONCEPT_RELATIONSHIP', 'RELATIONSHIP', 'CONCEPT_ANCESTOR', 'DRUG_STRENGTH', 'SOURCE_TO_CONCEPT_MAP', 'COST', 'PAYER_PLAN_PERIOD',
                                   'CDM_SOURCE', 'METADATA']
+
+tables_pkey = {'PERSON': 'person_id', 'OBSERVATION_PERIOD': 'observation_period_id', 'SPECIMEN': 'specimen_id', 'VISIT_OCCURRENCE': 'visit_occurrence_id', 'VISIT_DETAIL': 'visit_detail_id',
+               'PROCEDURE_OCCURRENCE': 'procedure_occurrence_id', 'DEVICE_EXPOSURE': 'device_exposure_id', 'CONDITION_OCCURRENCE': 'condition_occurrence_id', 'NOTE': 'note_id',
+               'NOTE_NLP': 'note_nlp_id', 'CONDITION_ERA': 'condition_era_id', 'DRUG_ERA': 'drug_era_id', 'DOSE_ERA': 'dose_era_id', 'LOCATION': 'location_id', 'CARE_SITE': 'care_site_id',
+               'PROVIDER': 'provider_id', 'CONCEPT': 'concept_id', 'VOCABULARY': 'vocabulary_id', 'DOMAIN': 'domain_id', 'CONCEPT_CLASS': 'concept_class_id', 'RELATIONSHIP': 'relationship_id',
+               'COST': 'cost_id', 'PAYER_PLAN_PERIOD': 'payer_plan_period_id'}
 
 
 class CohortInfoTemp():

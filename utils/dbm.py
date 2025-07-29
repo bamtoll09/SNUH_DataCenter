@@ -11,7 +11,7 @@ from secret import postgres_url, datacenter_url
 
 
 # -------- Importing structure.py --------
-from utils.structure import has_person_id, is_on_atlas
+from utils.structure import has_person_id, is_on_atlas, tables_pkey
 
 
 # -------- Logging Setup --------
@@ -265,7 +265,7 @@ def copy_tables_by_cohort_id(
     CREATE TABLE IF NOT EXISTS {base_schema}.{table.lower()} AS
     SELECT * FROM temp_fdw.{table.lower()} WHERE temp_fdw.{table.lower()}.person_id IN {subject_id_str};
 
-    ALTER TABLE {base_schema}.{table.lower()} ADD COLUMN IF NOT EXISTS id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
+    ALTER TABLE {base_schema}.{table.lower()} ADD COLUMN IF NOT EXISTS { tables_pkey[table.upper()] if table.upper() in tables_pkey.keys() else "id" } INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
     
     GRANT SELECT, INSERT, UPDATE, DELETE
         ON {base_schema}.{table.lower()} TO {app_user};
