@@ -150,12 +150,20 @@ async def approve_cohort_by_id(
 
     # Create SchmConnectInfo
     if schm_cinfo is None:
+        logger.debug(f"Creating schema connect info")
+
+        # Connect Information
+        host = "34.64.249.196" # "127.0.0.1"
+        port = 5432
+        username = "u" + str(user_id)
+        password = "1234"
+
         schm_cinfo = SchmConnectInfo()
         schm_cinfo.id = schm_info.id
-        schm_cinfo.host = "127.0.0.1"
-        schm_cinfo.port = 5432
-        schm_cinfo.username = "postgres_userid"
-        schm_cinfo.password = "mypass_randint"
+        schm_cinfo.host = host
+        schm_cinfo.port = port
+        schm_cinfo.username = username
+        schm_cinfo.password = password
         
         session_dc.add(schm_cinfo)
         session_dc.commit()
@@ -165,7 +173,7 @@ async def approve_cohort_by_id(
         session_dc.exec(CreateSchema(schema_name, True))
         session_dc.commit()
 
-        provision_user(session_dc, "u" + str(user_id), "1234", "datacenter", schema_name)
+        provision_user(session_dc, username, password, "datacenter", schema_name)
 
         copy_tables_by_cohort_id(session_atlas, session_dc, schema_name, cohort_id)
 

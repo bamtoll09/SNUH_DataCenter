@@ -196,15 +196,6 @@ def copy_tables_by_cohort_id(
     table_str = table_str.lower()
 
     logger.debug(f"Get tables {table_str}")
-    
-#     ddls = [f"CREATE TABLE {schema_name}.{table} AS SELECT * FROM postgres.demo_cdm.{table} \
-# WHERE person_id IN {subject_id_str}" for table in tables]
-    
-    # logger.debug(f"Executing: {ddls}")
-
-    # for ddl in ddls:
-    #     session_dc.exec(text(ddl))
-    # session_dc.commit()
 
 
     # DB A
@@ -281,7 +272,7 @@ def copy_tables_by_cohort_id(
 
     ddl_drop = "DROP SCHEMA temp_fdw CASCADE;"
 
-    logger.debug(f"DDL TABLES length is {ddl_tables}")
+    # logger.debug(f"DDL TABLES length is {ddl_tables}")
 
 
     session_dc.exec(text(ddl_a1))
