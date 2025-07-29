@@ -7,7 +7,7 @@ import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, CohortInfoTemp, CohortCertTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, AdminCohortDetailTemp
+from utils.structure import CohortDetail, CohortInfoTemp, CohortCertTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, AdminCohortDetailTemp, TABLE_NAME
 
 
 # -------- Importing Pydantic Models --------
@@ -78,13 +78,17 @@ async def get_all_applies(
 
     results = []
 
+    if chrt_certs is None:
+        return results
+    
     for ci in chrt_infos:
         for cr in chrt_certs:
             if ci.id == cr.id:
+                tables = [False for i in range(46)] if ci.tables is None else [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
                 cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description, random.randint(0, 203040),
                                                 id_name_mapping[ci.owner], ci.created_at, ci.modified_at, ci.origin)
                 cohort_cert_temp = CohortCertTemp(cr.applied_at, cr.resolved_at, cr.cur_status, cr.review)
-                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)])
+                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], tables)
 
                 stmt = select(CertOath).where(CertOath.document_for == ci.id)
                 cert_oaths = session_dc.exec(stmt).all()
