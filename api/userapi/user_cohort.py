@@ -7,14 +7,15 @@ import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, CohortCertTemp, AppliedCohortDetailTemp, ConnectInfoTemp
+from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, CohortCertTemp, AppliedCohortDetailTemp, ConnectInfoTemp, TABLE_NAME
 
 
 # -------- DBM Imports --------
 from utils.dbm import (
     get_atlas_session, get_dc_session,
     CohortDefinition,
-    CertOath, ChrtInfo, ChrtCert
+    CertOath, ChrtInfo, ChrtCert,
+    SchmInfo
 )
 from utils.auth import verify_token
 
@@ -55,10 +56,62 @@ async def get_my_cohorts(
     for ci in chrt_infos:
         for cc in chrt_certs:
             if ci.id == cc.id:
+                tables = [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
+
                 cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description,
                                         random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
                 schema_cert_temp = CohortCertTemp(cc.applied_at, cc.resolved_at, cc.cur_status, cc.review)
-                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)])
+                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], tables)
+                # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
+                connect_info_temp = None
+
+                if cc.cur_status == "approved":
+                    connect_info_temp = ConnectInfoTemp("data-center-db.hosplital.com", "omop_cdm", "kim_researcher_001", 5432, "cohort_1_kim_researcher_001", "temp_password_123")
+
+                # else:
+                #     raise HTTPException(status_code=404, detail="Schm info status not found")
+                
+                results.append(
+                    AppliedCohortDetailTemp(
+                        cohort_info_temp,
+                        schema_cert_temp,
+                        table_info_temp,
+                        connect_info_temp,
+                        syncables[ci.id]
+                    ).json()
+                )
+
+    return results
+
+@router.get("/applies")
+async def get_my_applied_cohorts(
+    session_atlas: Session = Depends(get_atlas_session),
+    session_dc: Session = Depends(get_dc_session),
+    user = Depends(verify_token)) -> list[dict]:
+
+    user_id = findout_id(session_atlas, user["sub"])
+    
+    stmt = select(ChrtInfo).where(ChrtInfo.owner == user_id)
+    chrt_infos = session_dc.exec(stmt).all()
+
+    stmt = select(ChrtCert).where(ChrtCert.cur_status != "before_apply", ChrtCert.id.in_([ci.id for ci in chrt_infos]))
+    chrt_certs = session_dc.exec(stmt).all()
+
+    syncables = get_syncable(session_atlas, session_dc, user["sub"])
+
+    import random
+
+    results = []
+
+    for ci in chrt_infos:
+        for cc in chrt_certs:
+            if ci.id == cc.id:
+                tables = [True if table == t else False for t in ci.tables for table in list(TABLE_NAME.__members__.keys())]
+
+                cohort_info_temp = CohortInfoTemp(ci.id, ci.name, ci.description,
+                                        random.randint(0, 203040), user["sub"], ci.created_at, ci.modified_at, ci.origin)
+                schema_cert_temp = CohortCertTemp(cc.applied_at, cc.resolved_at, cc.cur_status, cc.review)
+                table_info_temp = TableInfoTemp([random.randint(0,203040) for r in range(46)], tables)
                 # tables = [TABLE_NAME(j+1).name for j, val in enumerate([random.randint(0, 1) if i > 0 else 1 for i in range(random.randint(1, 46))]) if val == 1]
                 connect_info_temp = None
 
@@ -107,33 +160,39 @@ async def get_cohort_by_id(
 
     import random
 
-    stmt = select(ChrtInfo).where(ChrtInfo.ext_id == cohort_id)
+    stmt = select(ChrtInfo).where(ChrtInfo.id == cohort_id)
+    chrt_info = session_dc.exec(stmt).first()
+
+    stmt = select(SchmInfo).where(SchmInfo.schema_from == cohort_id)
     schm_info = session_dc.exec(stmt).first()
     
     schm_info_temp = None
     file_group_temp = None
 
-    if schm_info is not None:
-        schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
+    if schm_info is None:
+        schm_info_temp = SchemaInfoTemp(chrt_info.name, chrt_info.description)
 
-        stmt = select(CertOath).where(CertOath.document_for == schm_info.id)
-        cert_oaths = session_dc.exec(stmt).all()
+    stmt = select(CertOath).where(CertOath.document_for == chrt_info.id)
+    cert_oaths = session_dc.exec(stmt).all()
 
-        irb_drb_temps = []
+    irb_drb_temps = []
 
+    if cert_oaths is not None:
         for co in cert_oaths:
             docs_path = os.path.abspath(__file__ + "/../../../documents")
 
-            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path), datetime.now()))
+        irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path), datetime.now()))
 
-        file_group_temp = FileGroupTemp(irb_drb_temps)
+    file_group_temp = FileGroupTemp(irb_drb_temps)
+
+    tables = [True if table == t else False for t in chrt_info.tables for table in list(TABLE_NAME.__members__.keys())]
 
     results = CohortDetailTemp(
         CohortInfoTemp(
             cohort_id, chrt_def.name, chrt_def.description,
             random.randint(0, 203040), owner_name, chrt_def.created_date, chrt_def.modified_date, "ATLAS"
         ),
-        TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)]),
+        TableInfoTemp([random.randint(0,203040) for r in range(46)], tables),
         schm_info_temp,
         file_group_temp
     ).json()

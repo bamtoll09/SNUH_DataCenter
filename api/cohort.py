@@ -7,7 +7,7 @@ import os
 import aiofiles
 from datetime import datetime
 
-from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp
+from utils.structure import CohortDetail, CohortInfoTemp, CohortDetailTemp, TableInfoTemp, SchemaInfoTemp, IRBDRBTemp, FileGroupTemp, TABLE_NAME
 
 
 # -------- DBM Imports --------
@@ -109,12 +109,15 @@ async def get_cohort_by_id(
 
         file_group_temp = FileGroupTemp(irb_drb_temps)
 
+
+    tables = [True if table == t else False for t in chrt_info.tables for table in list(TABLE_NAME.__members__.keys())]
+
     results = CohortDetailTemp(
         CohortInfoTemp(
             cohort_id, chrt_info.name, chrt_info.description,
             random.randint(0, 203040), owner_name, chrt_info.created_at, chrt_info.modified_at, "ATLAS"
         ),
-        TableInfoTemp([random.randint(0,203040) for r in range(46)], [True if random.randint(0,1) == 1 else False for r in range(46)]),
+        TableInfoTemp([random.randint(0,203040) for r in range(46)], tables),
         schm_info_temp,
         file_group_temp
     ).json()
