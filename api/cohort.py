@@ -199,35 +199,52 @@ async def apply_cohort(
     if not os.path.exists(docs_path):
         os.makedirs(docs_path)
 
-    # File removing
+    # Answer Sheets
+    file_names = [file.filename for file in files]
+
     stmt = select(CertOath).where(CertOath.document_for == cohort_id)
     cert_oaths = session_dc.exec(stmt).all()
-
+    
+    # File removing
     if cert_oaths is not None:
         for co in cert_oaths:
-            os.remove(f"{docs_path}{co.path}")
-            session_dc.delete(co)
-        session_dc.commit()
+            if not co.name in file_names:
+                os.remove(f"{docs_path}{co.path}")
+                session_dc.delete(co)
 
-    # File upload
+    session_dc.commit()
+
+    # File uploading
     # Folder checking and creation
     cert_oath_dir = os.path.join(docs_path, str(cohort_id))
-
     if not os.path.exists(cert_oath_dir):
         logger.debug(f"Folder Created")
         os.makedirs(cert_oath_dir)
+
+    stmt = select(CertOath).where(CertOath.document_for == cohort_id)
+    cert_oaths = session_dc.exec(stmt).all()
+
+    co_file_names = None
+
+    if cert_oaths is not None:
+        co_file_names = [co.name for co in cert_oaths]
     
     cert_oath_list = []
 
     for file in files:
         file_name = file.filename
+
+        if co_file_names is not None:
+            if file_name in co_file_names:
+                continue
+
         file_path = f"/{cohort_id}"
         _, file_extension = os.path.splitext(file.filename)
         file_type = file_extension[1:]
         file_category = "IRB" if "irb" in file_name.lower() else "DRB" if "drb" in file_name.lower() else "ETC"
         
-        cert_oath = CertOath(name=file_name, path=file_path, type=file_type, category=file_category, document_for=cohort_id)
-        cert_oath_list.append(cert_oath)
+        co = CertOath(name=file_name, path=file_path, type=file_type, category=file_category, document_for=cohort_id)
+        cert_oath_list.append(co)
 
     session_dc.add_all(cert_oath_list)
     session_dc.commit()
@@ -237,16 +254,18 @@ async def apply_cohort(
     stmt = select(CertOath).where(CertOath.document_for == cohort_id)
     cert_oaths = session_dc.exec(stmt).all()
 
-    for cert_oath in cert_oaths:
-        cert_oath.path += f"/{cohort_id}_{cert_oath.id}.{cert_oath.type}"
+    for co in cert_oaths:
+        if not "_" in co.path:
 
-        logger.debug(f"File path: {docs_path} + {cert_oath.path}")
+            co.path += f"/{cohort_id}_{co.id}.{co.type}"
 
-        for file in files:
-            if file.filename == cert_oath.name:
-                async with aiofiles.open(os.path.join(docs_path + cert_oath.path), 'wb') as out_file:
-                    content = await file.read()
-                    await out_file.write(content)
+            logger.debug(f"File path: {docs_path} + {co.path}")
+
+            for file in files:
+                if file.filename == co.name:
+                    async with aiofiles.open(os.path.join(docs_path + co.path), 'wb') as out_file:
+                        content = await file.read()
+                        await out_file.write(content)
 
     session_dc.add_all(cert_oaths)
     session_dc.commit()

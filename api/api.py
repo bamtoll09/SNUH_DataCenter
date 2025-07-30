@@ -66,48 +66,48 @@ async def verify_user(
     
 
 # 나중에 검색기능 만들자
-@router.get("/schema/search")
-async def search_schema(
-    params: str = "",
-    condition: str = "schema",
-    session_atlas: Session = Depends(get_atlas_session),
-    session_dc: Session = Depends(get_dc_session),
-    user = Depends(verify_token)):
+# @router.get("/schema/search")
+# async def search_schema(
+#     params: str = "",
+#     condition: str = "schema",
+#     session_atlas: Session = Depends(get_atlas_session),
+#     session_dc: Session = Depends(get_dc_session),
+#     user = Depends(verify_token)):
 
-    params = params.strip()
+#     params = params.strip()
 
-    logger.debug(f"Search params: {params}, condition: {condition}")
+#     logger.debug(f"Search params: {params}, condition: {condition}")
     
-    items = params.split()
+#     items = params.split()
 
-    # parameter search is optional, if not provided, return all cohorts
-    if len(items) == 0:
-        return session_dc.exec(select(ChrtInfo)).all()
+#     # parameter search is optional, if not provided, return all cohorts
+#     if len(items) == 0:
+#         return session_dc.exec(select(ChrtInfo)).all()
 
-    if condition == "schema":
-        db_conditions = [
-            ChrtInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
-            for kw in items
-        ]
+#     if condition == "schema":
+#         db_conditions = [
+#             ChrtInfo.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
+#             for kw in items
+#         ]
 
-        logger.debug(f"{db_conditions}")
-        stmt = select(ChrtInfo).where(or_(*db_conditions))
+#         logger.debug(f"{db_conditions}")
+#         stmt = select(ChrtInfo).where(or_(*db_conditions))
 
-    elif condition == "user":
-        db_conditions = [
-            SecUser.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
-            for kw in items
-        ]
+#     elif condition == "user":
+#         db_conditions = [
+#             SecUser.name.ilike(f"%{kw}%")   # 대소문자 무시: ilike
+#             for kw in items
+#         ]
 
-        stmt = select(SecUser).where(or_(*db_conditions))
-        users = session_atlas.exec(stmt).all()
+#         stmt = select(SecUser).where(or_(*db_conditions))
+#         users = session_atlas.exec(stmt).all()
 
-        user_id_list = [user.id for user in users]
+#         user_id_list = [user.id for user in users]
 
-        stmt = select(ChrtInfo).where(ChrtInfo.owner.in_(user_id_list))
+#         stmt = select(ChrtInfo).where(ChrtInfo.owner.in_(user_id_list))
 
-    result = session_dc.exec(stmt).all()
+#     result = session_dc.exec(stmt).all()
 
-    logger.debug(f"Search result: {result}")
+#     logger.debug(f"Search result: {result}")
 
-    return result
+#     return result
