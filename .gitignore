@@ -7,3 +7,5 @@ secret.py
 Dockerfile
 .dockerignore
 *.tar.gz
+._*
+*.tar

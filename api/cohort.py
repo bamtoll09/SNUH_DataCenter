@@ -73,15 +73,10 @@ async def get_cohort_by_id(
     chrt_info = session_dc.exec(stmt).first()
 
     if chrt_info is None:
-        logger.error("Schema id not found on DataCenter")
-        raise HTTPException(status_code=404, detail="Schema id not found on DataCenter")
+        logger.error("Cohort id not found on DataCenter")
+        raise HTTPException(status_code=404, detail="Cohort id not found on DataCenter")
 
     owner_name = findout_name(session_atlas, chrt_info.owner)
-    
-    cohort_detail = CohortDetail(
-        id=cohort_id, name=chrt_info.name, description=chrt_info.description,
-        owner=owner_name, created_at=chrt_info.created_at, modified_at=chrt_info.created_at,
-    )
 
     import random
 
@@ -95,19 +90,23 @@ async def get_cohort_by_id(
         stmt = select(SchmInfo).where(SchmInfo.schema_from == cohort_id)
         schm_info = session_dc.exec(stmt).first()
 
+        if schm_info is None:
+            raise HTTPException(status_code=404, detail="Schema info is not found on DataCenter")
+        
         schm_info_temp = SchemaInfoTemp(schm_info.name, schm_info.description)
 
-        stmt = select(CertOath).where(CertOath.document_for == schm_info.id)
+        stmt = select(CertOath).where(CertOath.document_for == cohort_id)
         cert_oaths = session_dc.exec(stmt).all()
 
         irb_drb_temps = []
 
-        for co in cert_oaths:
-            docs_path = os.path.abspath(__file__ + "/../../documents")
+        if cert_oaths is not None:
+            for co in cert_oaths:
+                docs_path = os.path.abspath(__file__ + "/../../documents")
             
-            irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path)))
+                irb_drb_temps.append(IRBDRBTemp(co.name, co.path, os.path.getsize(docs_path + co.path)))
 
-        file_group_temp = FileGroupTemp(irb_drb_temps)
+            file_group_temp = FileGroupTemp(irb_drb_temps)
 
 
     tables = [False for i in range(46)] if chrt_info.tables is None else [True if table in chrt_info.tables else False for table in list(TABLE_NAME.__members__.keys())]
