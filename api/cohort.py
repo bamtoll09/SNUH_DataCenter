@@ -223,7 +223,7 @@ async def apply_cohort(
         file_name = file.filename
         file_path = f"/{cohort_id}"
         _, file_extension = os.path.splitext(file.filename)
-        file_type = file_extension
+        file_type = file_extension[1:]
         file_category = "IRB" if "irb" in file_name.lower() else "DRB" if "drb" in file_name.lower() else "ETC"
         
         cert_oath = CertOath(name=file_name, path=file_path, type=file_type, category=file_category, document_for=cohort_id)
