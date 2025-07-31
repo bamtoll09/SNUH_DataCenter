@@ -10,7 +10,9 @@ from datetime import datetime
 from secret import (
     postgres_url, datacenter_url,
     ATLAS_DB, DATACENTER_DB, ATLAS_TARGET_SCHEMA,
-    fdw_server, app_user, app_pw
+    db_host,
+    fdw_server, app_user, app_pw,
+    is_db_extension_installed
     )
 
 
@@ -221,9 +223,10 @@ def copy_tables_by_cohort_id(
 
     # DB A
     # Only once
-    ddl_a1 = f"""
-    CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
+    ddl_install_extension = "CREATE EXTENSION IF NOT EXISTS postgres_fdw;"
+
+    ddl_a1 = f"""
     DO $$BEGIN
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{app_user}') THEN
             CREATE ROLE {app_user} LOGIN PASSWORD '{app_pw}';
@@ -238,7 +241,7 @@ def copy_tables_by_cohort_id(
         OPTIONs (host '127.0.0.1', port '5432', dbname '{target_db}');
     
     CREATE USER MAPPING IF NOT EXISTS
-        FOR postgres
+        FOR {db_host}
         SERVER {fdw_server}
         OPTIONS (user '{app_user}', password '{app_pw}');
     """
@@ -275,7 +278,10 @@ def copy_tables_by_cohort_id(
 
     # logger.debug(f"DDL TABLES length is {ddl_tables}")
 
-
+    if not is_db_extension_installed:
+        session_dc.exec(text(ddl_install_extension))
+        session_dc.commit()
+        
     session_dc.exec(text(ddl_a1))
     session_dc.commit()
     session_atlas.exec(text(ddl_b))
