@@ -9,3 +9,5 @@ Dockerfile
 *.tar.gz
 ._*
 *.tar
+*.tar.gz
+postgres

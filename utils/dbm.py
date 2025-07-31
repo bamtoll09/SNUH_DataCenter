@@ -7,7 +7,11 @@ from datetime import datetime
 
 
 # -------- Importing secret.py --------
-from secret import postgres_url, datacenter_url
+from secret import (
+    postgres_url, datacenter_url,
+    ATLAS_DB, DATACENTER_DB, ATLAS_TARGET_SCHEMA,
+    fdw_server, app_user, app_pw
+    )
 
 
 # -------- Importing structure.py --------
@@ -199,16 +203,12 @@ def copy_tables_by_cohort_id(
 
 
     # DB A
-    base_db = "datacenter"
+    base_db = DATACENTER_DB
     base_schema = schema_name
 
     # DB B
-    target_db = "postgres"
-    target_schema = "demo_cdm"
-    fdw_server = "postgres_server"
-
-    app_user = "linker"
-    app_pw = "1234"
+    target_db = ATLAS_DB
+    target_schema = ATLAS_TARGET_SCHEMA
 
     # DB B
     ddl_b = f"""
@@ -314,7 +314,7 @@ def provision_user(
 
     session.exec(text(ddl))
 
-    # 패스워드는 bindparam 으로 분리
+    # 패스워드는 bindparam 으로 분리\ㅂ
     session.exec(
         text(f"ALTER ROLE {new_user} WITH PASSWORD :p"),
         params={"p": new_pw},
